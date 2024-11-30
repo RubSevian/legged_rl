@@ -1,0 +1,11 @@
+<launch>
+
+    <arg name="robot_name" default="go2"/>
+
+    <!-- <param name="legged_robot_description" textfile="$(find unitree_go2_description)/urdf/h1_with_sole.urdf"/> -->
+
+    <rosparam file="$(find unitree_go2_description)/config/mj.yaml" command="load"/>
+
+    <node name="legged_mujoco" pkg="legged_mujoco" type="legged_mujoco" respawn="false" clear_params="true" output="screen" />
+
+</launch>
