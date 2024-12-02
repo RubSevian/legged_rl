@@ -19,3 +19,5 @@ legged_mujoco:
     linear_acceleration_covariance: [ 0.01, 0.01, 0.01 ]
     topic_name: imu_data
   base_link: pelvis   # it should align with the name in mujoco model
+
+  use_unitree_sdk2: True

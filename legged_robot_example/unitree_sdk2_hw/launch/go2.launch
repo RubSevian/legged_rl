@@ -1,0 +1,7 @@
+<launch>
+
+  <rosparam file="$(find unitree_sdk2_hw)/config/go2.yaml" command="load"/>
+
+  <node name="unitree_sdk2_go2" pkg="unitree_sdk2_hw" type="unitree_sdk2_go2" respawn="false" clear_params="true" output="screen" />
+
+</launch>

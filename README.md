@@ -22,3 +22,17 @@ Test:
 simulate
 ```
 If the mujoco simulator pops up, the installation is successful.
+
+## Build this repo
+
+Clone this repo:
+```bash
+# in ros workspace's src folder
+git clone https://github.com/zitongbai/legged_rl.git --recurse-submodules
+```
+
+Build:
+```bash
+catkin config --install
+catkin build
+```

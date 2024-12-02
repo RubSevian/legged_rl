@@ -22,8 +22,6 @@ LeggedMujocoHW::LeggedMujocoHW(mjModel *model, mjData *data, ::mujoco::Simulate 
   jointNum_ = mj_model_->nu;
   jointSensorNum_ = jointSensorCoeff_ * jointNum_;
 
-  
-
   // resize the joint data vector
   jointData_.resize(jointNum_);
 }

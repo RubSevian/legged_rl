@@ -37,6 +37,9 @@
 #include "legged_mujoco/hw/LeggedMujocoHWLoop.h"
 #include "legged_mujoco/hw/LeggedMujocoHW.h"
 
+#include "unitree_sdk2_bridge/unitree_sdk2_bridge.h"
+#include <pthread.h>
+
 #define MUJOCO_PLUGIN_DIR "mujoco_plugin"
 
 extern "C" {
@@ -69,6 +72,9 @@ using Seconds = std::chrono::duration<double>;
 struct SimulationConfig{
   std::string robot = "h1";
   std::string robot_scene = "scene.xml";
+
+  int domain_id = 0;
+  std::string interface = "lo";
 } config;
 
 //---------------------------------------- plugin handling -----------------------------------------
@@ -453,6 +459,35 @@ void PhysicsThread(mj::Simulate* sim, const char* filename) {
 }
 
 
+// unitree sdk2 bridge thread
+void * UnitreeSDK2BridgeThread(void *arg) {
+
+  // Wait for mujoco data
+  while (1){
+    if (d){
+      std::cout << "Mujoco data is prepared" << std::endl;
+      break;
+    }
+    usleep(500000);
+  }
+
+  if (config.robot == "h1" || config.robot == "g1"){
+    // TODO
+    // config.band_attached_link = 6 * mj_name2id(m, mjOBJ_BODY, "torso_link");
+  }
+  else{
+    // config.band_attached_link = 6 * mj_name2id(m, mjOBJ_BODY, "base_link");
+  }
+
+  ChannelFactory::Instance()->Init(config.domain_id, config.interface);
+  UnitreeSdk2Bridge unitree_interface(m, d, *static_cast<mj::Simulate*>(arg));
+  
+  unitree_interface.Run();
+
+  pthread_exit(NULL);
+}
+
+
 //------------------------------------------ main --------------------------------------------------
 
 // machinery for replacing command line error by a macOS dialog box when running under Rosetta
@@ -505,9 +540,11 @@ int main(int argc, char** argv) {
   ros::NodeHandle robotHwNh("~");
 
   std::string pkg_name;
+  bool use_unitree_sdk2;
   robotHwNh.getParam("robot", config.robot);
   robotHwNh.getParam("robot_scene", config.robot_scene);
   robotHwNh.getParam("description_pkg", pkg_name);
+  robotHwNh.getParam("use_unitree_sdk2", use_unitree_sdk2);
   std::string scene_path = ros::package::getPath(pkg_name) + "/mjcf/" + config.robot_scene;
 
   const char* filename = nullptr;
@@ -517,42 +554,67 @@ int main(int argc, char** argv) {
     filename = scene_path.c_str();
   }
 
-  // start physics thread
-  std::thread physicsthreadhandle(&PhysicsThread, sim.get(), filename);
 
-  // wait for mujoco data
-  while(true){
-    if(d){
-      ROS_INFO("Mujoco data is ready");
-      break;
+
+  if (use_unitree_sdk2){
+
+    // start unitree sdk2 bridge thread
+    pthread_t unitree_sdk2_thread;
+    int rc = pthread_create(&unitree_sdk2_thread, NULL, UnitreeSDK2BridgeThread, sim.get());
+    if (rc != 0){
+      ROS_ERROR("Failed to create unitree sdk2 bridge thread");
+      exit(-1);
     }
-    usleep(500000);
-  } // end waiting loop
 
-  // We run the ROS loop in a separate thread as external calls, such
-  // as service callbacks loading controllers, can block the (main) control loop
-  ros::AsyncSpinner spinner(3);
-  spinner.start();
+    // start physics thread
+    std::thread physicsthreadhandle(&PhysicsThread, sim.get(), filename);
 
-  // start legged hw loop
-  using namespace legged;
+    // start simulation UI loop (blocking call)
+    sim->RenderLoop();
+    physicsthreadhandle.join();
 
-  std::shared_ptr<LeggedMujocoHW> legged_hw = std::make_shared<LeggedMujocoHW>(m, d, *sim);
-  legged_hw->init(nh, robotHwNh);
-  LeggedMujocoHWLoop loop(nh, legged_hw, *sim);
+    pthread_exit(NULL);
 
-  // create a ros service server to reset the simulation
-  ros::ServiceServer reset_server = nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>(
-      "reset_mujoco", [&sim](std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
-        ROS_WARN("[Mujoco] Resetting simulation");
-        sim->pending_.reset = true;
-        return true;
+  } else {
+
+    // start physics thread
+    std::thread physicsthreadhandle(&PhysicsThread, sim.get(), filename);
+
+    // wait for mujoco data
+    while(true){
+      if(d){
+        ROS_INFO("Mujoco data is ready");
+        break;
       }
-  );
+      usleep(500000);
+    } // end waiting loop
 
-  // start simulation UI loop (blocking call)
-  sim->RenderLoop();
-  physicsthreadhandle.join();
+    // We run the ROS loop in a separate thread as external calls, such
+    // as service callbacks loading controllers, can block the (main) control loop
+    ros::AsyncSpinner spinner(3);
+    spinner.start();
+
+    // start legged hw loop
+    using namespace legged;
+
+    std::shared_ptr<LeggedMujocoHW> legged_hw = std::make_shared<LeggedMujocoHW>(m, d, *sim);
+    legged_hw->init(nh, robotHwNh);
+    LeggedMujocoHWLoop loop(nh, legged_hw, *sim);
+
+    // create a ros service server to reset the simulation
+    ros::ServiceServer reset_server = nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>(
+        "reset_mujoco", [&sim](std_srvs::Empty::Request& req, std_srvs::Empty::Response& res) {
+          ROS_WARN("[Mujoco] Resetting simulation");
+          sim->pending_.reset = true;
+          return true;
+        }
+    );
+
+    // start simulation UI loop (blocking call)
+    sim->RenderLoop();
+    physicsthreadhandle.join();
+
+  }
 
   return 0;
 }
