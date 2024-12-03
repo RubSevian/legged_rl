@@ -1,0 +1,39 @@
+robot_config:
+  robot: go2
+  description_pkg: unitree_go2_description
+  mjcf_scene: scene.xml
+
+  # ros control HW loop
+  hw_loop:
+    loop_frequency: 500
+    cycle_time_error_threshold: 0.002
+    thread_priority: 95
+
+  imu:
+    handle_name: base_imu   # name of ImuSensorHandle in ros control
+    frame_id: imu_link      # name of imu's frame_id in urdf
+    topic_name: imu_data
+    # orientation_covariance_diagonal: [ 0.0012, 0.0012, 0.0012 ]
+    # angular_velocity_covariance: [ 0.0004, 0.0004, 0.0004 ]
+    # linear_acceleration_covariance: [ 0.01, 0.01, 0.01 ]
+  
+  base_link: base_link   # it should align with the name in mujoco model
+
+  joint_names:
+    # order of joints aligns with that in unitree sdk2
+    - FR_hip_joint
+    - FR_thigh_joint
+    - FR_calf_joint
+    - FL_hip_joint
+    - FL_thigh_joint
+    - FL_calf_joint
+    - RR_hip_joint
+    - RR_thigh_joint
+    - RR_calf_joint
+    - RL_hip_joint
+    - RL_thigh_joint
+    - RL_calf_joint
+
+  unitree_sdk2:
+    use_unitree_sdk2: True
+    network_interface: lo  # 'lo' for simulation, 'xxx' for real robot

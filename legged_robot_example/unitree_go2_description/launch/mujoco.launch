@@ -1,11 +1,18 @@
 <launch>
 
-    <arg name="robot_name" default="go2"/>
+    <arg name="use_unitree_sdk2" default="true" />
 
-    <!-- <param name="legged_robot_description" textfile="$(find unitree_go2_description)/urdf/h1_with_sole.urdf"/> -->
+    <!-- set global parameter -->
+    <param name="use_unitree_sdk2" value="$(arg use_unitree_sdk2)" />
 
-    <rosparam file="$(find unitree_go2_description)/config/mj.yaml" command="load"/>
+    <rosparam file="$(find unitree_go2_description)/config/robot.yaml" command="load"/>
 
     <node name="legged_mujoco" pkg="legged_mujoco" type="legged_mujoco" respawn="false" clear_params="true" output="screen" />
 
+
+    <group if="$(arg use_unitree_sdk2)">
+
+        <!-- use unitree_sdk2 HW -->
+        <node name="unitree_sdk2_go2" pkg="unitree_sdk2_hw" type="unitree_sdk2_go2" respawn="false" clear_params="true" output="screen" />
+    </group>
 </launch>

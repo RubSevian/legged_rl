@@ -1,0 +1,7 @@
+controllers:
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 300
+
+  stand_controller:
+    type: legged/StandController

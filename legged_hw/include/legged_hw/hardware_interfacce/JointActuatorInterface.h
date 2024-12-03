@@ -101,7 +101,7 @@ public:
 
 };
 
-class JointActuatorInterface : public hardware_interface::HardwareResourceManager<JointActuatorHandle, hardware_interface::JointStateHandle> {};
+class JointActuatorInterface : public hardware_interface::HardwareResourceManager<JointActuatorHandle, hardware_interface::ClaimResources> {};
 
 } // namespace legged_rl
 

@@ -1,0 +1,10 @@
+<library path="lib/liblegged_rl_controller">
+
+    <class name="legged/StandController" type="legged::StandController"
+           base_class_type="controller_interface::ControllerBase">
+        <description>
+            The standup controller.
+        </description>
+    </class>
+
+</library>

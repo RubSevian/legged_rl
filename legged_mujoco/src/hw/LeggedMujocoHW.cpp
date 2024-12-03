@@ -35,13 +35,14 @@ bool LeggedMujocoHW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh
   // robot_hw_nh.getParam("power_limit", powerLimit_);
 
   ros::NodeHandle nhP("~");
+  ros::NodeHandle nhConfig("robot_config");
   int error = 0;
   std::string imuTopicName;
   // get the parameters
-  error += static_cast<int>(!nhP.getParam("imu/topic_name", imuTopicName));
-  error += static_cast<int>(!nhP.getParam("imu/handle_name", imuData_.handle_name_));
-  error += static_cast<int>(!nhP.getParam("imu/frame_id", imuData_.frame_id_));
-  error += static_cast<int>(!nhP.getParam("base_link", baseLink_));
+  error += static_cast<int>(!nhConfig.getParam("imu/topic_name", imuTopicName));
+  error += static_cast<int>(!nhConfig.getParam("imu/handle_name", imuData_.handle_name_));
+  error += static_cast<int>(!nhConfig.getParam("imu/frame_id", imuData_.frame_id_));
+  error += static_cast<int>(!nhConfig.getParam("base_link", baseLink_));
   if(error > 0){
     std::string err_msg = "could not retrieve one of the required parameters: imu/topic_name or imu/handle_name or imu/frame_id or base_link";
     ROS_ERROR_STREAM(err_msg);

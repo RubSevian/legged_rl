@@ -45,10 +45,10 @@ LeggedHWLoop::LeggedHWLoop(ros::NodeHandle& nh, std::shared_ptr<LeggedHW> hardwa
   // Load ros params
   int error = 0;
   int threadPriority = 0;
-  ros::NodeHandle nhP("~");
-  error += static_cast<int>(!nhP.getParam("loop_frequency", loopHz_));
-  error += static_cast<int>(!nhP.getParam("cycle_time_error_threshold", cycleTimeErrorThreshold_));
-  error += static_cast<int>(!nhP.getParam("thread_priority", threadPriority));
+  ros::NodeHandle nhP("robot_config");
+  error += static_cast<int>(!nhP.getParam("hw_loop/loop_frequency", loopHz_));
+  error += static_cast<int>(!nhP.getParam("hw_loop/cycle_time_error_threshold", cycleTimeErrorThreshold_));
+  error += static_cast<int>(!nhP.getParam("hw_loop/thread_priority", threadPriority));
   if (error > 0) {
     std::string error_message =
         "could not retrieve one of the required parameters: loop_hz or cycle_time_error_threshold or thread_priority";

@@ -21,19 +21,20 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
   }
 
   ros::NodeHandle nhP("~");
+  ros::NodeHandle nhConfig("robot_config");
   int error = 0;
   // FR_0 -> 0 , FR_1 -> 1  , FR_2 -> 2
   // FL_0 -> 3 , FL_1 -> 4  , FL_2 -> 5
   // RR_0 -> 6 , RR_1 -> 7  , RR_2 -> 8
   // RL_0 -> 9 , RL_1 -> 10 , RL_2 -> 11
   jointNames_.reserve(jointNum_);
-  error += static_cast<int>(!nhP.getParam("joint_names", jointNames_));
+  error += static_cast<int>(!nhConfig.getParam("joint_names", jointNames_));
   std::string imuTopicName;
-  error += static_cast<int>(!nhP.getParam("imu/topic_name", imuTopicName));
-  error += static_cast<int>(!nhP.getParam("imu/handle_name", imuData_.handle_name_));
-  error += static_cast<int>(!nhP.getParam("imu/frame_id", imuData_.frame_id_));
+  error += static_cast<int>(!nhConfig.getParam("imu/topic_name", imuTopicName));
+  error += static_cast<int>(!nhConfig.getParam("imu/handle_name", imuData_.handle_name_));
+  error += static_cast<int>(!nhConfig.getParam("imu/frame_id", imuData_.frame_id_));
   std::string networkInterface;
-  error += static_cast<int>(!nhP.getParam("network_interface", networkInterface));
+  error += static_cast<int>(!nhConfig.getParam("unitree_sdk2/network_interface", networkInterface));
 
   if(error > 0){
     std::string err_msg = "could not retrieve one of the required parameters: joint_names or imu/topic_name or imu/handle_name or imu/frame_id";
@@ -49,7 +50,6 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
    */
   setupJoints();
   setupImu();
-
 
   /**
    * @brief Initialize Unitree SDK2

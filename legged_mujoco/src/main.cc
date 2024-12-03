@@ -537,15 +537,25 @@ int main(int argc, char** argv) {
   // ROS initialization
   ros::init(argc, argv, "legged_mujoco");
   ros::NodeHandle nh;
+  ros::NodeHandle nhConfig("robot_config");
   ros::NodeHandle robotHwNh("~");
 
   std::string pkg_name;
   bool use_unitree_sdk2;
-  robotHwNh.getParam("robot", config.robot);
-  robotHwNh.getParam("robot_scene", config.robot_scene);
-  robotHwNh.getParam("description_pkg", pkg_name);
-  robotHwNh.getParam("use_unitree_sdk2", use_unitree_sdk2);
+  int error = 0;
+  error += static_cast<int>(!nhConfig.getParam("robot", config.robot));
+  error += static_cast<int>(!nhConfig.getParam("mjcf_scene", config.robot_scene));
+  error += static_cast<int>(!nhConfig.getParam("description_pkg", pkg_name));
+  error += static_cast<int>(!nh.getParam("use_unitree_sdk2", use_unitree_sdk2));
+  // error += static_cast<int>(!nhConfig.getParam("unitree_sdk2/network_interface", config.interface));
+  if (error > 0){
+    std::string error_msg = 
+      "[legged_mujoco] Failed to retrieve one of the required parameters: robot, mjcf_scene, description_pkg, use_unitree_sdk2";
+    ROS_ERROR_STREAM(error_msg);
+    throw std::runtime_error(error_msg);
+  }
   std::string scene_path = ros::package::getPath(pkg_name) + "/mjcf/" + config.robot_scene;
+  
 
   const char* filename = nullptr;
   if (argc >  1) {
@@ -553,8 +563,6 @@ int main(int argc, char** argv) {
   } else {
     filename = scene_path.c_str();
   }
-
-
 
   if (use_unitree_sdk2){
 
