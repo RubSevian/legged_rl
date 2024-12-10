@@ -7,4 +7,11 @@
         </description>
     </class>
 
+    <class name="legged/RLController" type="legged::rl::RLController"
+           base_class_type="controller_interface::ControllerBase">
+        <description>
+            The rl controller.
+        </description>
+    </class>
+
 </library>

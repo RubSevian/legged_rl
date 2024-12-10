@@ -1,0 +1,7 @@
+<launch>
+  <!-- Load parameters from YAML file -->
+  <rosparam file="$(find legged_rl_controller)/config/rl_cfg.yaml" command="load" />
+
+  <!-- Launch the test node -->
+  <node name="test" pkg="legged_rl_controller" type="test_node" output="screen" />
+</launch>

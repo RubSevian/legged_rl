@@ -52,7 +52,9 @@ private:
     bool setupImu();
 
     std::vector<MjJointData> jointData_;
+    std::vector<std::string> jointNames_;
     MjImuData imuData_;
+    std::vector<double> jointTorqueLimits_;
 
     // mujoco
     mjData *mj_data_;
@@ -71,6 +73,10 @@ private:
     std::string imuTopicName_;
     std::string groundTruthTopicName_;
     std::string baseLink_;
+
+    inline double clip_(double x, double low, double up){
+      return std::min(std::max(x, low), up);
+    };
 };
 
 

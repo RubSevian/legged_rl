@@ -5,7 +5,7 @@ robot_config:
 
   # ros control HW loop
   hw_loop:
-    loop_frequency: 500
+    loop_frequency: 200
     cycle_time_error_threshold: 0.002
     thread_priority: 95
 
@@ -35,5 +35,4 @@ robot_config:
     - RL_calf_joint
 
   unitree_sdk2:
-    use_unitree_sdk2: True
     network_interface: lo  # 'lo' for simulation, 'xxx' for real robot

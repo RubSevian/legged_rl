@@ -23,6 +23,21 @@ simulate
 ```
 If the mujoco simulator pops up, the installation is successful.
 
+## Libtorch
+
+Download libtorch from [pytorch](https://pytorch.org/) (**CPU** version is efficient enough for rl network). Extract it to a `legged_rl/libs`. The final path should be `legged_rl/libs/libtorch`.
+
+<!-- Possible issues:
+
+- Libtorch cannot find CUDA: 
+  - Make sure you have CUDA installed. If not, you may refer to: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#ubuntu
+  - Make sure you have set the environment variable `CUDA_HOME` to the path of your CUDA installation. You can add the following line to your `.bashrc` file:
+    ```bash
+    export CUDA_HOME=/usr/local/cuda
+    export CUDACXX=/usr/local/cuda/bin/nvcc
+    ``` -->
+  
+
 ## Build this repo
 
 Clone this repo:
@@ -34,5 +49,5 @@ git clone https://github.com/zitongbai/legged_rl.git --recurse-submodules
 Build:
 ```bash
 catkin config --install
-catkin build
+catkin build -DPYTHON_EXECUTABLE=/usr/bin/python3 -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```

@@ -3,6 +3,7 @@ project(legged_rl_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -18,6 +19,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
+get_filename_component(LIBTORCH_ABSOLUTE_PATH "../libs/libtorch" ABSOLUTE)
+list(APPEND CMAKE_PREFIX_PATH "${LIBTORCH_ABSOLUTE_PATH}")
+find_package(Torch REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -124,10 +128,23 @@ include_directories(
 
 add_library(${PROJECT_NAME}
   src/StandController.cpp
+  src/RLController.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
+  ${TORCH_LIBRARIES}
+)
+
+add_executable(test_node
+  src/test.cpp
+)
+
+add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(test_node
+  ${catkin_LIBRARIES}
+  ${TORCH_LIBRARIES}
 )
 
 ## Declare a C++ library
@@ -213,3 +230,5 @@ install(FILES
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+SET(CMAKE_BUILD_TYPE Release)

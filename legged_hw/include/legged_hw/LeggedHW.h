@@ -89,8 +89,6 @@ protected:
   // URDF model of the robot
   std::shared_ptr<urdf::Model> urdfModel_;  // NOLINT(misc-non-private-member-variables-in-classes)
 
-private:
-
   /** \brief Load urdf of robot from param server.
    *
    * Load urdf of robot from param server.
@@ -99,6 +97,10 @@ private:
    * @return True if successful.
    */
   bool loadUrdf(ros::NodeHandle& rootNh);
+
+private:
+
+
 };
 
 } // namespace legged

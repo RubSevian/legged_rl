@@ -34,6 +34,9 @@ bool LeggedMujocoHW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh
   // // todo: power limit
   // robot_hw_nh.getParam("power_limit", powerLimit_);
 
+
+
+
   ros::NodeHandle nhP("~");
   ros::NodeHandle nhConfig("robot_config");
   int error = 0;
@@ -61,6 +64,29 @@ bool LeggedMujocoHW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh
   initSuccess &= setupJoints();
   initSuccess &= setupImu();
 
+  // load urdf
+  if(!loadUrdf(root_nh)){
+    std::string err_msg = "[LeggedMujocoHW] Could not load the urdf model";
+    ROS_ERROR_STREAM(err_msg);
+    return false;
+  }
+
+  // parse torque limit for each joint
+  for(const auto & jntName : jointNames_){
+    auto jnt = urdfModel_->getJoint(jntName);
+    if(jnt == nullptr){
+      std::string err_msg = "[LeggedMujocoHW] Could not find the joint: " + jntName + " in the urdf model";
+      ROS_ERROR_STREAM(err_msg);
+      return false;
+    }
+    jointTorqueLimits_.push_back(jnt->limits->effort);
+  }
+
+  // DEBUG print the jointTorqueLimits_
+  for(size_t i=0; i<jointNum_; i++){
+    ROS_INFO_STREAM("[LeggedMujocoHW] Joint: " << jointNames_[i] << " torque limit: " << jointTorqueLimits_[i]);
+  }
+
   return initSuccess;
 }
 
@@ -73,7 +99,13 @@ bool LeggedMujocoHW::setupJoints(){
 
   for(size_t i=0; i<jointNum_; i++){
     // get joint name and check it
-    const char * jntName = mj_id2name(mj_model_, mjtObj::mjOBJ_ACTUATOR, i);
+    const char * motorName = mj_id2name(mj_model_, mjtObj::mjOBJ_ACTUATOR, i);
+    if(motorName == nullptr){
+      ROS_ERROR("[LeggedMujocoHW] Motor name is not valid");
+      return false;
+    }
+    int jointId = mj_model_->actuator_trnid[i*2]; // TODO: make it more elegant
+    const char * jntName = mj_id2name(mj_model_, mjtObj::mjOBJ_JOINT, jointId);
     if(jntName == nullptr){
       ROS_ERROR("[LeggedMujocoHW] Joint name is not valid");
       return false;
@@ -84,6 +116,11 @@ bool LeggedMujocoHW::setupJoints(){
     // register joint handle to hybrid joint interface
     JointActuatorHandle jntHandle(jntStateHandle, &jointData_[i].posDes_, &jointData_[i].velDes_, &jointData_[i].kp_, &jointData_[i].kd_, &jointData_[i].ff_);
     jointActuatorInterface_.registerHandle(jntHandle);
+
+    jointNames_.push_back(jntName);
+
+    // debug 
+    ROS_INFO_STREAM("[LeggedMujocoHW] Set up joint: " << jntName);
   }
   return true;
 }
@@ -210,9 +247,10 @@ void LeggedMujocoHW::write(const ros::Time& time, const ros::Duration& period) {
   }
   // write data to mujoco
   for(size_t i=0; i<jointNum_; i++){
-    mj_data_->ctrl[i] = jointData_[i].ff_ + 
-                        jointData_[i].kp_ * (jointData_[i].posDes_ - mj_data_->sensordata[i]) +
-                        jointData_[i].kd_ * (jointData_[i].velDes_ - mj_data_->sensordata[i + jointNum_]);
+    double target = jointData_[i].ff_ + 
+                    jointData_[i].kp_ * (jointData_[i].posDes_ - mj_data_->sensordata[i]) +
+                    jointData_[i].kd_ * (jointData_[i].velDes_ - mj_data_->sensordata[i + jointNum_]);
+    mj_data_->ctrl[i] = clip_(target, -jointTorqueLimits_[i], jointTorqueLimits_[i]);
   }
 }
 

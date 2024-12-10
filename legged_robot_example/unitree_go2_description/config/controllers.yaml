@@ -5,3 +5,6 @@ controllers:
 
   stand_controller:
     type: legged/StandController
+
+  rl_controller:
+    type: legged/RLController

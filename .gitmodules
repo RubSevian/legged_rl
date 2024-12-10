@@ -1,3 +1,6 @@
 [submodule "libs/unitree_sdk2"]
 	path = libs/unitree_sdk2
 	url = git@github.com:zitongbai/unitree_sdk2.git
+[submodule "legged_gym"]
+	path = legged_gym
+	url = git@github.com:zitongbai/legged_gym.git
