@@ -88,6 +88,7 @@ struct RLConfig{
   int numActions;
   int numObservations;
   std::map<std::string, double> defaultJointAngles;
+  std::vector<std::string> gymJointNames;
   std::string controlType;
   double controlScale;
   std::map<std::string, double> stiffness;
@@ -149,6 +150,11 @@ private:
   void initTensor();
 
   std::vector<std::string> jointNames_;
+  // the order of joints is different in robot.yaml and rl_cfg.yaml
+  // order in robot.yaml aligns with that in unitree sdk2 or your robot
+  // order in rl_cfg.yaml aligns with that in gym
+  std::vector<int> jntMapRobot2Gym_;  
+  std::vector<int> jntMapGym2Robot_;
   int jointNum_;
   std::vector<double> jointDefaultPos_;
   std::vector<double> jointKp_;

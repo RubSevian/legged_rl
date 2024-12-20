@@ -21,7 +21,8 @@ namespace rl{
 bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& controller_nh) {
 
   ros::NodeHandle nh;
-  ros::NodeHandle nhConfig("robot_config");
+  ros::NodeHandle nhRobotConfig("robot_config");
+  ros::NodeHandle nhRLConfig("rl_config");
 
   odomGTSub_ = nh.subscribe<nav_msgs::Odometry>("/ground_truth/state", 1, &RLController::odomGTCallback, this);
   cmdSub_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &RLController::cmdCallback, this);
@@ -30,14 +31,38 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
 
   std::string imuHandleName;
   int error = 0;
-  error += static_cast<int>(!nhConfig.getParam("joint_names", jointNames_));
-  error += static_cast<int>(!nhConfig.getParam("imu/handle_name", imuHandleName));
+  error += static_cast<int>(!nhRobotConfig.getParam("joint_names", jointNames_));
+  error += static_cast<int>(!nhRobotConfig.getParam("imu/handle_name", imuHandleName));
   if(error > 0){
     std::string error_msg = "[RLController] Fail to load robot config parameters";
     ROS_ERROR_STREAM(error_msg);
     throw std::runtime_error(error_msg);
   }
   jointNum_ = jointNames_.size();
+
+  // Load the RL config parameters
+
+  error = 0;
+  error += static_cast<int>(!nhRLConfig.getParam("env/num_actions", rlConfig_.numActions));
+  error += static_cast<int>(!nhRLConfig.getParam("env/num_observations", rlConfig_.numObservations));
+  error += static_cast<int>(!nhRLConfig.getParam("env/gym_joint_names", rlConfig_.gymJointNames));
+  error += static_cast<int>(!nhRLConfig.getParam("init_state/default_joint_angles", rlConfig_.defaultJointAngles));
+  error += static_cast<int>(!nhRLConfig.getParam("control/control_type", rlConfig_.controlType));
+  error += static_cast<int>(!nhRLConfig.getParam("control/action_scale", rlConfig_.controlScale));
+  error += static_cast<int>(!nhRLConfig.getParam("control/stiffness", rlConfig_.stiffness));
+  error += static_cast<int>(!nhRLConfig.getParam("control/damping", rlConfig_.damping));
+  error += static_cast<int>(!nhRLConfig.getParam("normalization/obs_scales/lin_vel", rlConfig_.obsScales.linVel));
+  error += static_cast<int>(!nhRLConfig.getParam("normalization/obs_scales/ang_vel", rlConfig_.obsScales.angVel));
+  error += static_cast<int>(!nhRLConfig.getParam("normalization/obs_scales/dof_pos", rlConfig_.obsScales.dofPos));
+  error += static_cast<int>(!nhRLConfig.getParam("normalization/obs_scales/dof_vel", rlConfig_.obsScales.dofVel));
+  error += static_cast<int>(!nhRLConfig.getParam("normalization/clip_actions", rlConfig_.clipActions));
+  error += static_cast<int>(!nhRLConfig.getParam("normalization/clip_observations", rlConfig_.clipObservations));
+  error += static_cast<int>(!nhRLConfig.getParam("jit_script_path", rlConfig_.jitScriptPath));
+  if (error > 0) {
+    std::string error_message = "[RLController] Could not retrieve one of the required parameters. Make sure you have exported the yaml files from legged gym";
+    ROS_ERROR_STREAM(error_message);
+    throw std::runtime_error(error_message);
+  }
 
   // ROS Control interface initialization
 
@@ -48,29 +73,6 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   }
   auto * imuInterface = robot_hw->get<hardware_interface::ImuSensorInterface>();
   imuSensorHandle_ = imuInterface->getHandle(imuHandleName);
-
-  // Load the RL config parameters
-
-  error = 0;
-  error += static_cast<int>(!nh.getParam("env/num_actions", rlConfig_.numActions));
-  error += static_cast<int>(!nh.getParam("env/num_observations", rlConfig_.numObservations));
-  error += static_cast<int>(!nh.getParam("init_state/default_joint_angles", rlConfig_.defaultJointAngles));
-  error += static_cast<int>(!nh.getParam("control/control_type", rlConfig_.controlType));
-  error += static_cast<int>(!nh.getParam("control/action_scale", rlConfig_.controlScale));
-  error += static_cast<int>(!nh.getParam("control/stiffness", rlConfig_.stiffness));
-  error += static_cast<int>(!nh.getParam("control/damping", rlConfig_.damping));
-  error += static_cast<int>(!nh.getParam("normalization/obs_scales/lin_vel", rlConfig_.obsScales.linVel));
-  error += static_cast<int>(!nh.getParam("normalization/obs_scales/ang_vel", rlConfig_.obsScales.angVel));
-  error += static_cast<int>(!nh.getParam("normalization/obs_scales/dof_pos", rlConfig_.obsScales.dofPos));
-  error += static_cast<int>(!nh.getParam("normalization/obs_scales/dof_vel", rlConfig_.obsScales.dofVel));
-  error += static_cast<int>(!nh.getParam("normalization/clip_actions", rlConfig_.clipActions));
-  error += static_cast<int>(!nh.getParam("normalization/clip_observations", rlConfig_.clipObservations));
-  error += static_cast<int>(!nh.getParam("jit_script_path", rlConfig_.jitScriptPath));
-  if (error > 0) {
-    std::string error_message = "[RLController] Could not retrieve one of the required parameters. Make sure you have exported the yaml files from legged gym";
-    ROS_ERROR_STREAM(error_message);
-    throw std::runtime_error(error_message);
-  }
 
   // check joint number in default_joint_angles
   if(rlConfig_.defaultJointAngles.size() != jointNum_){
@@ -94,13 +96,13 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
 
   // debug
   updateObservation();
-  ROS_INFO_STREAM("[RLController] linVel: " << observation_.linVel );
-  ROS_INFO_STREAM("[RLController] angVel: " << observation_.angVel );
-  ROS_INFO_STREAM("[RLController] gravityVec: " << observation_.gravityVec );
-  ROS_INFO_STREAM("[RLController] commands: " << observation_.commands );
-  ROS_INFO_STREAM("[RLController] dofPos: " << observation_.dofPos );
-  ROS_INFO_STREAM("[RLController] dofVel: " << observation_.dofVel );
-  ROS_INFO_STREAM("[RLController] actions: " << observation_.actions );
+  ROS_INFO_STREAM("[RLController] linVel: \n" << observation_.linVel );
+  ROS_INFO_STREAM("[RLController] angVel: \n" << observation_.angVel );
+  ROS_INFO_STREAM("[RLController] gravityVec: \n" << observation_.gravityVec );
+  ROS_INFO_STREAM("[RLController] commands: \n" << observation_.commands );
+  ROS_INFO_STREAM("[RLController] dofPos: \n" << observation_.dofPos );
+  ROS_INFO_STREAM("[RLController] dofVel: \n" << observation_.dofVel );
+  ROS_INFO_STREAM("[RLController] actions: \n" << observation_.actions );
 
   // obsQueue_.push(obs_);
   // obsQueue_.push(obs_);
@@ -153,7 +155,8 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
 
   auto actionScaled = action_ * rlConfig_.controlScale;
   for(int i = 0; i < jointNum_; i++){
-    double target = jointDefaultPos_[i] + actionScaled[i].item<float>();
+    int jntIdxGym = jntMapRobot2Gym_[i];
+    double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<float>();
     jointActuatorHandles_[i].setCommand(
       target, 0, jointKp_[i], jointKd_[i], 0
     );
@@ -199,19 +202,47 @@ void RLController::initJoint(){
     }
     ROS_INFO_STREAM("[RLController] Joint: " << jointName << " DefaultPos: " << jointDefaultPos_[i] << " Kp: " << jointKp_[i] << " Kd: " << jointKd_[i]);
   }
+
+  // init joint idx mapping
+  jntMapGym2Robot_.resize(jointNum_, -1);
+  jntMapRobot2Gym_.resize(jointNum_, -1);
+  for(int i = 0; i < jointNum_; i++){
+    for(int j = 0; j < jointNum_; j++){
+      if(jointNames_[i] == rlConfig_.gymJointNames[j]){
+        jntMapRobot2Gym_[i] = j;
+        jntMapGym2Robot_[j] = i;
+        break;
+      }
+    }
+  }
+
+  // debug
+  ROS_INFO_STREAM("[RLController] Joint mapping: Robot Joint <-----> Gym Joint");
+  for(int i = 0; i < jointNum_; i++){
+    ROS_INFO_STREAM("[RLController] " << jointNames_[i] << " <-----> " << rlConfig_.gymJointNames[jntMapRobot2Gym_[i]]);
+  }
+  
+
+  // check if there is any joint that is not matched
+  for(int i=0; i<jointNum_; i++){
+    if(jntMapGym2Robot_[i] < 0 || jntMapRobot2Gym_[i] < 0){
+      std::string error_message = "[RLController] The joint: " + jointNames_[i] + " or " + rlConfig_.gymJointNames[i] + " is not matched";
+      ROS_ERROR_STREAM(error_message);
+      throw std::runtime_error(error_message);
+    }
+  }
+
 }
 
 void RLController::updateObservation(){
   // get the command
-  command_[0] *= rlConfig_.obsScales.linVel;
-  command_[1] *= rlConfig_.obsScales.linVel;
-  command_[2] *= rlConfig_.obsScales.angVel;
   observation_.commands = torch::tensor({command_[0], command_[1], command_[2]});
 
   // get joint position and velocity
   for(int i = 0; i < jointNum_; i++){
-    observation_.dofPos[i] = (jointActuatorHandles_[i].getPosition() - jointDefaultPos_[i]) * rlConfig_.obsScales.dofPos;
-    observation_.dofVel[i] = jointActuatorHandles_[i].getVelocity() * rlConfig_.obsScales.dofVel;
+    int jntIdxGym = jntMapRobot2Gym_[i];
+    observation_.dofPos[jntIdxGym] = (jointActuatorHandles_[i].getPosition() - jointDefaultPos_[i]) * rlConfig_.obsScales.dofPos;
+    observation_.dofVel[jntIdxGym] = jointActuatorHandles_[i].getVelocity() * rlConfig_.obsScales.dofVel;
   }
 
   // cheat here for now
@@ -258,9 +289,9 @@ void RLController::odomGTCallback(const nav_msgs::Odometry::ConstPtr& msg){
 
 void RLController::cmdCallback(const geometry_msgs::Twist::ConstPtr& msg){
   // cmdBuffer_.writeFromNonRT(*msg);
-  command_[0] = msg->linear.x;
-  command_[1] = msg->linear.y;
-  command_[2] = msg->angular.z;
+  command_[0] = msg->linear.x * rlConfig_.obsScales.linVel;
+  command_[1] = msg->linear.y * rlConfig_.obsScales.linVel;
+  command_[2] = msg->angular.z * rlConfig_.obsScales.angVel;
 }
 
 void RLController::loadUrdf(ros::NodeHandle & nh){

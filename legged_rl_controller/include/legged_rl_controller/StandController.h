@@ -34,16 +34,8 @@ private:
   std::vector<JointActuatorHandle> jointActuatorHandles_;
   hardware_interface::ImuSensorHandle imuSensorHandle_;
 
-  const float targetPos1_[12] = {0.0, 1.36, -2.65, 0.0, 1.36, -2.65,
-                          -0.2, 1.36, -2.65, 0.2, 1.36, -2.65};
-
-  const float targetPos2_[12] = {0.0, 0.67, -1.3, 0.0, 0.67, -1.3,
-                          0.0, 0.67, -1.3, 0.0, 0.67, -1.3};
-
-  const float targetPos3_[12] = {-0.35, 1.36, -2.65, 0.35, 1.36, -2.65,
-                          -0.5, 1.36, -2.65, 0.5, 1.36, -2.65};
-
-  std::vector<std::string> jointNames_;
+  std::map<std::string, double> defaultJointAnglesMap_;
+  std::vector<double> defaultJointAngles_;
   const int jointNum_ = 12;
 
   ros::Time startTime_;
