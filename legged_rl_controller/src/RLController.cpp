@@ -24,9 +24,6 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   ros::NodeHandle nhRobotConfig("robot_config");
   ros::NodeHandle nhRLConfig("rl_config");
 
-  odomGTSub_ = nh.subscribe<nav_msgs::Odometry>("/ground_truth/state", 1, &RLController::odomGTCallback, this);
-  cmdSub_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &RLController::cmdCallback, this);
-
   // load the robot config parameters
 
   std::string imuHandleName;
@@ -47,6 +44,9 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   error += static_cast<int>(!nhRLConfig.getParam("env/num_observations", rlConfig_.numObservations));
   error += static_cast<int>(!nhRLConfig.getParam("env/gym_joint_names", rlConfig_.gymJointNames));
   error += static_cast<int>(!nhRLConfig.getParam("init_state/default_joint_angles", rlConfig_.defaultJointAngles));
+  error += static_cast<int>(!nhRLConfig.getParam("commands/ranges/lin_vel_x", rlConfig_.commandsRange.lin_vel_x));
+  error += static_cast<int>(!nhRLConfig.getParam("commands/ranges/lin_vel_y", rlConfig_.commandsRange.lin_vel_y));
+  error += static_cast<int>(!nhRLConfig.getParam("commands/ranges/ang_vel_yaw", rlConfig_.commandsRange.ang_vel_yaw));
   error += static_cast<int>(!nhRLConfig.getParam("control/control_type", rlConfig_.controlType));
   error += static_cast<int>(!nhRLConfig.getParam("control/action_scale", rlConfig_.controlScale));
   error += static_cast<int>(!nhRLConfig.getParam("control/stiffness", rlConfig_.stiffness));
@@ -63,6 +63,11 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
     ROS_ERROR_STREAM(error_message);
     throw std::runtime_error(error_message);
   }
+
+  // ROS subscribers initialization
+
+  odomGTSub_ = nh.subscribe<nav_msgs::Odometry>("/ground_truth/state", 1, &RLController::odomGTCallback, this);
+  cmdSub_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &RLController::cmdCallback, this);
 
   // ROS Control interface initialization
 
@@ -288,10 +293,15 @@ void RLController::odomGTCallback(const nav_msgs::Odometry::ConstPtr& msg){
 }
 
 void RLController::cmdCallback(const geometry_msgs::Twist::ConstPtr& msg){
-  // cmdBuffer_.writeFromNonRT(*msg);
-  command_[0] = msg->linear.x * rlConfig_.obsScales.linVel;
-  command_[1] = msg->linear.y * rlConfig_.obsScales.linVel;
-  command_[2] = msg->angular.z * rlConfig_.obsScales.angVel;
+  // clip the command
+  command_[0] = std::clamp(msg->linear.x, rlConfig_.commandsRange.lin_vel_x[0], rlConfig_.commandsRange.lin_vel_x[1]);
+  command_[1] = std::clamp(msg->linear.y, rlConfig_.commandsRange.lin_vel_y[0], rlConfig_.commandsRange.lin_vel_y[1]);
+  command_[2] = std::clamp(msg->angular.z, rlConfig_.commandsRange.ang_vel_yaw[0], rlConfig_.commandsRange.ang_vel_yaw[1]);
+
+  // scale the command
+  command_[0] = command_[0] * rlConfig_.obsScales.linVel;
+  command_[1] = command_[1] * rlConfig_.obsScales.linVel;
+  command_[2] = command_[2] * rlConfig_.obsScales.angVel;
 }
 
 void RLController::loadUrdf(ros::NodeHandle & nh){

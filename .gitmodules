@@ -4,3 +4,6 @@
 [submodule "legged_gym"]
 	path = legged_gym
 	url = git@github.com:zitongbai/legged_gym.git
+[submodule "rsl_rl"]
+	path = rsl_rl
+	url = git@github.com:zitongbai/rsl_rl.git

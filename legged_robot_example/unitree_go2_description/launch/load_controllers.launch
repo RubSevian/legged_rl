@@ -13,19 +13,22 @@
   <!-- load these controllers into controller manager, but without starting them-->
   <node name="controller_loader" pkg="controller_manager" type="controller_manager"
       output="screen" args="load
-      controllers/rl_controller"/>
+      controllers/stand_controller"/>
 
   <!-- spawn joint_state_controller to publish joint states -->
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
     output="screen" args="
       controllers/joint_state_controller 
-      controllers/stand_controller"/>
+      controllers/rl_controller"/>
 
   <!-- robot_state_publisher -->
   <!-- <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
       <remap from="robot_description" to="$(arg description_name)"/>    
   </node> -->
-  
+
+  <!-- joy -->
+  <include file="$(find legged_rl_controller)/launch/joy_teleop.launch"/>
+
   <!-- rqt_controller_manager -->
   <node name="rqt_controller_manager" pkg="rqt_controller_manager" type="rqt_controller_manager" output="screen"/>
 

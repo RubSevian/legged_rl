@@ -89,6 +89,11 @@ struct RLConfig{
   int numObservations;
   std::map<std::string, double> defaultJointAngles;
   std::vector<std::string> gymJointNames;
+  struct {
+    std::vector<double> lin_vel_x;
+    std::vector<double> lin_vel_y;
+    std::vector<double> ang_vel_yaw;
+  } commandsRange;
   std::string controlType;
   double controlScale;
   std::map<std::string, double> stiffness;
