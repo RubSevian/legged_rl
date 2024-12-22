@@ -110,9 +110,9 @@ struct RLConfig{
 };
 
 struct ObservationTensor{
-  torch::Tensor linVel = torch::zeros({3});
-  torch::Tensor angVel = torch::zeros({3});
-  torch::Tensor gravityVec = torch::zeros({3});
+  torch::Tensor baseLinVel = torch::zeros({3});
+  torch::Tensor baseAngVel = torch::zeros({3});
+  torch::Tensor projGravity = torch::zeros({3});
   torch::Tensor commands = torch::zeros({3});
   torch::Tensor dofPos = torch::zeros({12});
   torch::Tensor dofVel = torch::zeros({12});
@@ -149,10 +149,16 @@ private:
 
   RLConfig rlConfig_;
   std::shared_ptr<torch::jit::script::Module> module_;
-  torch::Tensor action_ = torch::zeros({12});
-  torch::Tensor obs_ = torch::zeros({48});
+  torch::Tensor action_;
+  torch::Tensor obs_;
+  torch::Tensor obsBuf_;
   ObservationTensor observation_;
   void initTensor();
+
+  std::vector<std::string> observationNames_; // its order matters, should align with the order in legged gym env
+  int oneStepObsSize_;
+  int obsBufSize_;
+  void updateObservation();
 
   std::vector<std::string> jointNames_;
   // the order of joints is different in robot.yaml and rl_cfg.yaml
@@ -167,7 +173,8 @@ private:
   std::vector<double> jointTorqueLimits_;
   void initJoint();
 
-  void updateObservation();
+
+
 
   // FixedSizeQueue<at::Tensor> obsQueue_;
 

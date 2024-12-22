@@ -30,6 +30,9 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   int error = 0;
   error += static_cast<int>(!nhRobotConfig.getParam("joint_names", jointNames_));
   error += static_cast<int>(!nhRobotConfig.getParam("imu/handle_name", imuHandleName));
+  error += static_cast<int>(!nhRobotConfig.getParam("observations", observationNames_));
+  error += static_cast<int>(!nhRobotConfig.getParam("one_step_obs_size", oneStepObsSize_));
+  error += static_cast<int>(!nhRobotConfig.getParam("obs_buffer_size", obsBufSize_));
   if(error > 0){
     std::string error_msg = "[RLController] Fail to load robot config parameters";
     ROS_ERROR_STREAM(error_msg);
@@ -60,6 +63,13 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   error += static_cast<int>(!nhRLConfig.getParam("jit_script_path", rlConfig_.jitScriptPath));
   if (error > 0) {
     std::string error_message = "[RLController] Could not retrieve one of the required parameters. Make sure you have exported the yaml files from legged gym";
+    ROS_ERROR_STREAM(error_message);
+    throw std::runtime_error(error_message);
+  }
+
+  // check number of observations
+  if (oneStepObsSize_*obsBufSize_ != rlConfig_.numObservations){
+    std::string error_message = "[RLController] Check one_step_obs_size and obs_buffer_size in robot.yaml";
     ROS_ERROR_STREAM(error_message);
     throw std::runtime_error(error_message);
   }
@@ -101,20 +111,13 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
 
   // debug
   updateObservation();
-  ROS_INFO_STREAM("[RLController] linVel: \n" << observation_.linVel );
-  ROS_INFO_STREAM("[RLController] angVel: \n" << observation_.angVel );
-  ROS_INFO_STREAM("[RLController] gravityVec: \n" << observation_.gravityVec );
+  ROS_INFO_STREAM("[RLController] baseLinVel: \n" << observation_.baseLinVel );
+  ROS_INFO_STREAM("[RLController] baseAngVel: \n" << observation_.baseAngVel );
+  ROS_INFO_STREAM("[RLController] projGravity: \n" << observation_.projGravity );
   ROS_INFO_STREAM("[RLController] commands: \n" << observation_.commands );
   ROS_INFO_STREAM("[RLController] dofPos: \n" << observation_.dofPos );
   ROS_INFO_STREAM("[RLController] dofVel: \n" << observation_.dofVel );
   ROS_INFO_STREAM("[RLController] actions: \n" << observation_.actions );
-
-  // obsQueue_.push(obs_);
-  // obsQueue_.push(obs_);
-  // obsQueue_.push(obs_);
-  // obsQueue_.push(obs_);
-  // obsQueue_.push(obs_);
-  // obsQueue_.push(obs_);
 
   return true;
 }
@@ -129,7 +132,6 @@ void RLController::stopping(const ros::Time& time){
 
 void RLController::update(const ros::Time& time, const ros::Duration& period){
   updateObservation();
-  // obsQueue_.push(obs_);
 
   // debug
   // check nan in obs
@@ -139,16 +141,9 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
     exit(1);
   }
 
-  // // 倒序遍历obsQueue_, 并将所有元素拼接成一个tensor作为model的输入
-  // std::vector<torch::Tensor> obs_list;
-  // for(int i = obsQueue_.size() - 1; i >= 0; i--){
-  //   obs_list.push_back(obsQueue_[i]);
-  // }
-  // auto obsHistory = torch::cat(obs_list, 1);
-
   // set inference mode
   module_->eval();
-  auto out = module_->forward({obs_}).toTensor();
+  auto out = module_->forward({obsBuf_}).toTensor();
   action_ = torch::clamp(out, -rlConfig_.clipActions, rlConfig_.clipActions).view({-1});
 
   // debug check nan
@@ -170,14 +165,16 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
 }
 
 void RLController::initTensor(){
-  observation_.linVel = torch::zeros({3});
-  observation_.angVel = torch::zeros({3});
-  observation_.gravityVec = torch::zeros({3});
+  observation_.baseLinVel = torch::zeros({3});
+  observation_.baseAngVel = torch::zeros({3});
+  observation_.projGravity = torch::zeros({3});
   observation_.commands = torch::zeros({3});
   observation_.dofPos = torch::zeros({jointNum_});
   observation_.dofVel = torch::zeros({jointNum_});
   observation_.actions = torch::zeros({rlConfig_.numActions});
   action_ = torch::zeros({rlConfig_.numActions});
+  obs_ = torch::zeros({oneStepObsSize_});
+  obsBuf_ = torch::zeros({1, obsBufSize_*oneStepObsSize_});
 }
 
 void RLController::initJoint(){
@@ -227,7 +224,6 @@ void RLController::initJoint(){
     ROS_INFO_STREAM("[RLController] " << jointNames_[i] << " <-----> " << rlConfig_.gymJointNames[jntMapRobot2Gym_[i]]);
   }
   
-
   // check if there is any joint that is not matched
   for(int i=0; i<jointNum_; i++){
     if(jntMapGym2Robot_[i] < 0 || jntMapRobot2Gym_[i] < 0){
@@ -250,42 +246,58 @@ void RLController::updateObservation(){
     observation_.dofVel[jntIdxGym] = jointActuatorHandles_[i].getVelocity() * rlConfig_.obsScales.dofVel;
   }
 
-  // cheat here for now
-  // TODO: use real sensor data
-  nav_msgs::Odometry odom = * odomGTBuffer_.readFromRT();
-  // rotation from world to body
-  tf2::Quaternion quat(odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
+  // get imu data
+  // quaternion
+  tf2::Quaternion quat(
+    imuSensorHandle_.getOrientation()[0], // x
+    imuSensorHandle_.getOrientation()[1], // y
+    imuSensorHandle_.getOrientation()[2], // z
+    imuSensorHandle_.getOrientation()[3]  // w
+  );
   tf2::Quaternion quatInv = quat.inverse();
-
-  tf2::Vector3 linVel(odom.twist.twist.linear.x, odom.twist.twist.linear.y, odom.twist.twist.linear.z); // in world frame
-  tf2::Vector3 angVel(odom.twist.twist.angular.x, odom.twist.twist.angular.y, odom.twist.twist.angular.z);  // in world frame
+  // angular velocity
+  observation_.baseAngVel = torch::tensor({imuSensorHandle_.getAngularVelocity()[0], 
+                                        imuSensorHandle_.getAngularVelocity()[1], 
+                                        imuSensorHandle_.getAngularVelocity()[2]});
+  
+  // project the gravity vector to the body frame
+  // i.e. express the gravity vector in the body frame
   tf2::Vector3 gravityVec(0, 0, -1);
+  auto projGravity = tf2::quatRotate(quatInv, gravityVec);
+  observation_.projGravity = torch::tensor({projGravity.getX(), projGravity.getY(), projGravity.getZ()});
 
-  auto linVelBody = tf2::quatRotate(quatInv, linVel);
-  auto angVelBody = tf2::quatRotate(quatInv, angVel);
-  // auto linVelBody = linVel;
-  // auto angVelBody = angVel;
-  auto gravityVecBody = tf2::quatRotate(quatInv, gravityVec);
-
-  observation_.linVel = torch::tensor({linVelBody.getX(), linVelBody.getY(), linVelBody.getZ()});
-  observation_.angVel = torch::tensor({angVelBody.getX(), angVelBody.getY(), angVelBody.getZ()});
-  observation_.gravityVec = torch::tensor({gravityVecBody.getX(), gravityVecBody.getY(), gravityVecBody.getZ()});
-
+  // last action
   observation_.actions = action_;
 
   std::vector<torch::Tensor> obs_list;
-  obs_list.reserve(7);
-  obs_list.push_back(observation_.linVel);
-  obs_list.push_back(observation_.angVel);
-  obs_list.push_back(observation_.gravityVec);
-  obs_list.push_back(observation_.commands);
-  obs_list.push_back(observation_.dofPos);
-  obs_list.push_back(observation_.dofVel);
-  obs_list.push_back(observation_.actions);
+  obs_list.reserve(observationNames_.size());
+  // push back the observations according to the order in observationNames_
+  for(const auto & obsName : observationNames_){
+    if(obsName == "commands"){  // 3
+      obs_list.push_back(observation_.commands);
+    } else if(obsName == "base_ang_vel"){ // 3
+      obs_list.push_back(observation_.baseAngVel);
+    } else if(obsName == "projected_gravity"){  // 3
+      obs_list.push_back(observation_.projGravity);
+    } else if(obsName == "dof_pos"){  // 12
+      obs_list.push_back(observation_.dofPos);
+    } else if(obsName == "dof_vel"){  // 12
+      obs_list.push_back(observation_.dofVel);
+    } else if(obsName == "actions"){  // 12
+      obs_list.push_back(observation_.actions);
+    } else {
+      std::string error_message = "[RLController] The observation: " + obsName + " is not supported";
+      ROS_ERROR_STREAM(error_message);
+      throw std::runtime_error(error_message);
+    }
+  }
+
   auto obs = torch::cat(obs_list, 0);
   obs = obs.unsqueeze(0);
   obs_ = torch::clamp(obs, -rlConfig_.clipObservations, rlConfig_.clipObservations);
 
+  // update the observation buffer
+  obsBuf_ = torch::cat({obs_, obsBuf_.slice(1, 0, obsBufSize_*oneStepObsSize_-oneStepObsSize_)}, 1);
 }
 
 void RLController::odomGTCallback(const nav_msgs::Odometry::ConstPtr& msg){

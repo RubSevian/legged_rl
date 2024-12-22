@@ -4,8 +4,8 @@ rl_config:
   commands:
     ranges:
       ang_vel_yaw:
-      - -1
-      - 1
+      - -3.14
+      - 3.14
       lin_vel_x:
       - -1.0
       - 1.0
@@ -34,7 +34,7 @@ rl_config:
     - RR_thigh_joint
     - RR_calf_joint
     num_actions: 12
-    num_observations: 48
+    num_observations: 270
   init_state:
     default_joint_angles:
       FL_calf_joint: -1.5
@@ -49,7 +49,7 @@ rl_config:
       RR_calf_joint: -1.5
       RR_hip_joint: -0.1
       RR_thigh_joint: 1.0
-  jit_script_path: /home/xiaobaige/rl_ws/src/legged_rl/legged_gym/logs/go2/exported/policies/policy_1.pt
+  jit_script_path: /home/xiaobaige/rl_ws/src/legged_rl/legged_gym/logs/rough_Go2/exported/policies/policy_1.pt
   normalization:
     clip_actions: 100.0
     clip_observations: 100.0

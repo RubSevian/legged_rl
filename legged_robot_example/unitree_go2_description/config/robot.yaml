@@ -1,7 +1,7 @@
 robot_config:
   robot: go2
   description_pkg: unitree_go2_description
-  mjcf_scene: scene.xml
+  mjcf_scene: scene_terrain_1.xml
 
   # ros control HW loop
   hw_loop:
@@ -33,6 +33,11 @@ robot_config:
     - RL_hip_joint
     - RL_thigh_joint
     - RL_calf_joint
+
+  # Names of observations, its order should align with that in legged gym env
+  observations: [commands, base_ang_vel, projected_gravity, dof_pos, dof_vel, actions]
+  one_step_obs_size: 45
+  obs_buffer_size: 6
 
   unitree_sdk2:
     network_interface: lo  # 'lo' for simulation, 'xxx' for real robot

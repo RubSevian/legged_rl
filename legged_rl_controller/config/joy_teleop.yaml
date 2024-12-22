@@ -19,7 +19,7 @@ teleop:
       -
         axis: 3
         target: angular.z
-        scale: 1.0
+        scale: 2.0
 
   # force_push:
   #   type: topic
