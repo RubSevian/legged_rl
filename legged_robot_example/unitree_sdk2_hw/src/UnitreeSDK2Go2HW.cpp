@@ -51,6 +51,24 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
   setupJoints();
   setupImu();
 
+  // load urdf
+  if(!loadUrdf(root_nh)){
+    std::string err_msg = "[LeggedMujocoHW] Could not load the urdf model";
+    ROS_ERROR_STREAM(err_msg);
+    return false;
+  }
+
+  // parse torque limit for each joint
+  for(const auto & jntName : jointNames_){
+    auto jnt = urdfModel_->getJoint(jntName);
+    if(jnt == nullptr){
+      std::string err_msg = "[LeggedMujocoHW] Could not find the joint: " + jntName + " in the urdf model";
+      ROS_ERROR_STREAM(err_msg);
+      return false;
+    }
+    jointTorqueLimits_.push_back(jnt->limits->effort);
+  }
+
   /**
    * @brief Initialize Unitree SDK2
    */
@@ -123,6 +141,18 @@ void UnitreeSDK2Go2HW::write(const ros::Time& time, const ros::Duration& period)
     lowCmd_.motor_cmd()[i].kp() = jointData_[i].kp_;
     lowCmd_.motor_cmd()[i].kd() = jointData_[i].kd_;
     lowCmd_.motor_cmd()[i].tau() = jointData_[i].ff_;
+
+    // TODO: add torque limits
+    
+    // double target = jointData_[i].ff_ + 
+    //                 jointData_[i].kp_ * (jointData_[i].posDes_ - jointData_[i].pos_) +
+    //                 jointData_[i].kd_ * (jointData_[i].velDes_ - jointData_[i].vel_);
+    // lowCmd_.motor_cmd()[i].q() = 0.0;
+    // lowCmd_.motor_cmd()[i].dq() = 0.0;
+    // lowCmd_.motor_cmd()[i].kp() = 0.0;
+    // lowCmd_.motor_cmd()[i].kd() = 0.0;
+    // lowCmd_.motor_cmd()[i].tau() = std::max(-jointTorqueLimits_[i], std::min(target, jointTorqueLimits_[i]));
+
   }
 
   lowCmd_.crc() = crc32_core((uint32_t *)&lowCmd_, (sizeof(unitree_go::msg::dds_::LowCmd_)>>2)-1);

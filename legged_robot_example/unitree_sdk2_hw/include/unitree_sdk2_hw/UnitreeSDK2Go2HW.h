@@ -73,6 +73,7 @@ private:
   std::vector<UnitreeJointData> jointData_;
   const int jointNum_ = 12;
   std::vector<std::string> jointNames_;
+  std::vector<double> jointTorqueLimits_;
   // imu data for ros control
   UnitreeImuData imuData_;
 

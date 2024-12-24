@@ -117,14 +117,38 @@ class TerrainGenerator:
                   height=0.15,
                   length=1.5,
                   stair_nums=10):
+        """Add stairs to scene
 
-        local_pos = [0.0, 0.0, 0.0]
+        Args:
+            init_pos (list, optional): _description_. Defaults to [1.0, 0.0, 0.0].
+            yaw (float, optional): _description_. Defaults to 0.0.
+            width (float, optional): _description_. Defaults to 0.2.
+            height (float, optional): _description_. Defaults to 0.15.
+            length (float, optional): _description_. Defaults to 1.5.
+            stair_nums (int, optional): _description_. Defaults to 10.
+        """
+        
+        top_pos = [0.0, 0.0, 0.0]
+        bottom_z = -0.5
         for i in range(stair_nums):
-            local_pos[0] += width
-            local_pos[2] += height/2.0
-            x, y = rot2d(local_pos[0], local_pos[1], yaw)
-            self.AddBox([x + init_pos[0], y + init_pos[1], local_pos[2]],
-                        [0.0, 0.0, yaw], [width+0.01, length, height*(i+1)])
+            top_pos[0] += width
+            top_pos[2] += height
+            if i < stair_nums - 1:
+                x, y = rot2d(top_pos[0]+width/2.0, top_pos[1], yaw)
+                self.AddBox([x + init_pos[0], y + init_pos[1], (top_pos[2]+bottom_z)/2.0],
+                            [0.0, 0.0, yaw], [width+width, length, top_pos[2]-bottom_z])
+            else:
+                x, y = rot2d(top_pos[0], top_pos[1], yaw)
+                self.AddBox([x + init_pos[0], y + init_pos[1], (top_pos[2]+bottom_z)/2.0],
+                            [0.0, 0.0, yaw], [width, length, top_pos[2]-bottom_z])
+
+        # local_pos = [0.0, 0.0, -0.5 * height]
+        # for i in range(stair_nums):
+        #     local_pos[0] += width
+        #     local_pos[2] += height
+        #     x, y = rot2d(local_pos[0], local_pos[1], yaw)
+        #     self.AddBox([x + init_pos[0], y + init_pos[1], local_pos[2]],
+        #                 [0.0, 0.0, yaw], [width, length, height])
 
     def AddSuspendStairs(self,
                          init_pos=[1.0, 0.0, 0.0],
@@ -260,30 +284,23 @@ class TerrainGenerator:
 if __name__ == "__main__":
     tg = TerrainGenerator()
 
-    # # Box obstacle
-    # tg.AddBox(position=[1.5, 0.0, 0.1], euler=[0, 0, 0.0], size=[1, 1.5, 0.2])
+    # Box obstacle
+    tg.AddBox(position=[1.5, 0.0, -0.08], euler=[0, 0, 0.0], size=[1, 1.5, 0.2])
     
-    # # Geometry obstacle
-    # # geo_type supports "plane", "sphere", "capsule", "ellipsoid", "cylinder", "box"
+    # Geometry obstacle
+    # geo_type supports "plane", "sphere", "capsule", "ellipsoid", "cylinder", "box"
     # tg.AddGeometry(position=[1.5, 0.0, 0.25], euler=[0, 0, 0.0], size=[1.0,0.5,0.5],geo_type="cylinder")
 
     # Slope
-    slope_degree = 20
-    tg.AddBox(position=[2.0, 0.0, 0.4],
-              euler=[0.0, -np.math.radians(slope_degree), 0.0],
-              size=[3, 1.5, 0.1])
-
-    tg.AddBox(position=[4.78, 0.0, 0.4],
-              euler=[0.0, np.math.radians(slope_degree), 0.0],
+    tg.AddBox(position=[2.0, 2.0, 0.5],
+              euler=[0.0, -0.5, 0.0],
               size=[3, 1.5, 0.1])
 
     # Stairs
-    tg.AddStairs(init_pos=[7.0, 0.0, 0.0], yaw=0.0, height=0.05, width=0.2, stair_nums=10)
-    tg.AddStairs(init_pos=[11.2, 0.0, 0.0], yaw=np.math.pi, height=0.05, width=0.2, stair_nums=10)
-    
+    tg.AddStairs(init_pos=[1.0, 4.0, 0.0], yaw=0.0, width=0.2, height=0.1, length=1.5, stair_nums=10)
 
-    # # Suspend stairs
-    tg.AddSuspendStairs(init_pos=[1.0, 6.0, 0.0], yaw=0.0, height=0.05, width=0.2, gap=0.15, stair_nums=10)
+    # Suspend stairs
+    tg.AddSuspendStairs(init_pos=[1.0, 6.0, 0.0], yaw=0.0)
 
     # Rough ground
     tg.AddRoughGround(init_pos=[-2.5, 5.0, 0.0],

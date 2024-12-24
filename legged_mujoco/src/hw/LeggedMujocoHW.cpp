@@ -250,7 +250,7 @@ void LeggedMujocoHW::write(const ros::Time& time, const ros::Duration& period) {
     double target = jointData_[i].ff_ + 
                     jointData_[i].kp_ * (jointData_[i].posDes_ - mj_data_->sensordata[i]) +
                     jointData_[i].kd_ * (jointData_[i].velDes_ - mj_data_->sensordata[i + jointNum_]);
-    mj_data_->ctrl[i] = clip_(target, -jointTorqueLimits_[i], jointTorqueLimits_[i]);
+    mj_data_->ctrl[i] = std::clamp(target, -jointTorqueLimits_[i], jointTorqueLimits_[i]);
   }
 }
 

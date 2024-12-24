@@ -73,10 +73,6 @@ private:
     std::string imuTopicName_;
     std::string groundTruthTopicName_;
     std::string baseLink_;
-
-    inline double clip_(double x, double low, double up){
-      return std::min(std::max(x, low), up);
-    };
 };
 
 

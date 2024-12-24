@@ -5,7 +5,7 @@ robot_config:
 
   # ros control HW loop
   hw_loop:
-    loop_frequency: 200
+    loop_frequency: 100 # Hz, higher rate not necessary better
     cycle_time_error_threshold: 0.002
     thread_priority: 95
 
