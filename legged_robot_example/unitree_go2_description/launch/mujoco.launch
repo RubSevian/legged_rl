@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="use_unitree_sdk2" default="false" />
+    <arg name="use_unitree_sdk2" default="true" />
     <arg name="description_name" default="legged_robot_description" />
 
     <!-- load urdf to parameter server -->

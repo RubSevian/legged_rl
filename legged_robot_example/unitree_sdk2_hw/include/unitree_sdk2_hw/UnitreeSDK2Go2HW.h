@@ -15,6 +15,7 @@
 #include "legged_hw/LeggedHW.h"
 
 #include <math.h>
+#include <stdint.h>
 
 #include <unitree/robot/channel/channel_publisher.hpp>
 #include <unitree/robot/channel/channel_subscriber.hpp>
@@ -22,6 +23,7 @@
 #include <unitree/idl/go2/LowCmd_.hpp>
 #include <unitree/common/time/time_tool.hpp>
 #include <unitree/common/thread/thread.hpp>
+#include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
 
 using namespace unitree::common;
 using namespace unitree::robot;
@@ -48,7 +50,7 @@ struct UnitreeImuData{
 class UnitreeSDK2Go2HW : public LeggedHW {
 
 public:
-  UnitreeSDK2Go2HW() = default;
+  explicit UnitreeSDK2Go2HW() = default;
   
   bool init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh) override;
 
@@ -59,6 +61,9 @@ public:
   const std::string TOPIC_LOWCMD = "rt/lowcmd";
   const std::string TOPIC_LOWSTATE = "rt/lowstate";
 
+  const double posStopF = (2.146E+9f);
+  const double velStopF = (16000.0f);
+
 private:
 
   bool setupJoints();
@@ -66,8 +71,9 @@ private:
   bool setupImu();
 
   void initLowCmd();
-
   void lowStateMessageHandler(const void* message);
+  int queryMotionStatus();
+  std::string queryServiceName(std::string form,std::string name);
 
   // joint data for ros control
   std::vector<UnitreeJointData> jointData_;
@@ -79,6 +85,8 @@ private:
 
   unitree_go::msg::dds_::LowCmd_ lowCmd_{};      // default init
   unitree_go::msg::dds_::LowState_ lowState_{};  // default init
+  // unitree::robot::b2::MotionSwitcherClient motionSwitcherClient_;
+  std::shared_ptr<unitree::robot::b2::MotionSwitcherClient> motionSwitcherClient_;
 
   // publisher to Go2
   ChannelPublisherPtr<unitree_go::msg::dds_::LowCmd_> lowCmdPublisher_;

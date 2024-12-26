@@ -80,6 +80,24 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
   lowStateSubsriber_.reset(new ChannelSubscriber<unitree_go::msg::dds_::LowState_>(TOPIC_LOWSTATE));
   lowStateSubsriber_->InitChannel(std::bind(&UnitreeSDK2Go2HW::lowStateMessageHandler, this, std::placeholders::_1), 1);
 
+  /**
+   * @brief Init motion switcher client
+   */
+  motionSwitcherClient_ = std::make_shared<unitree::robot::b2::MotionSwitcherClient>();
+  motionSwitcherClient_->SetTimeout(3.0f);
+  motionSwitcherClient_->Init();
+  // shutdown motion-control-related service
+  while(queryMotionStatus()){
+    ROS_INFO("[UnitreeSDK2Go2HW] Shutting down the motion control-related service...");
+    int32_t ret = motionSwitcherClient_->ReleaseMode();
+    if (ret == 0){
+      ROS_INFO("[UnitreeSDK2Go2HW] ReleaseMode succeeded.");
+    } else {
+      ROS_ERROR_STREAM("[UnitreeSDK2Go2HW] ReleaseMode failed. Error code: " << ret);
+    }
+    sleep(5);
+  }
+
   return true;
 }
 
@@ -209,12 +227,52 @@ void UnitreeSDK2Go2HW::initLowCmd(){
 
   for(size_t i=0; i<20; i++){
     lowCmd_.motor_cmd()[i].mode() = (0x01); // FoC
+    lowCmd_.motor_cmd()[i].q() = posStopF;
+    lowCmd_.motor_cmd()[i].dq() = velStopF;
+    lowCmd_.motor_cmd()[i].kp() = 0.0;
+    lowCmd_.motor_cmd()[i].kd() = 0.0;
+    lowCmd_.motor_cmd()[i].tau() = 0.0;
   }
 
 }
 
 void UnitreeSDK2Go2HW::lowStateMessageHandler(const void * message){
   lowState_ = *(unitree_go::msg::dds_::LowState_*)message;
+}
+
+int UnitreeSDK2Go2HW::queryMotionStatus(){
+  std::string robotForm,motionName;
+  int motionStatus;
+  int32_t ret = motionSwitcherClient_->CheckMode(robotForm,motionName);
+  if (ret == 0){
+    ROS_INFO("[UnitreeSDK2Go2HW] CheckMode succeeded.");
+  } else {
+    ROS_ERROR_STREAM("[UnitreeSDK2Go2HW] CheckMode failed. Error code: " << ret);
+  }
+  if (motionName.empty()){
+    ROS_INFO("[UnitreeSDK2Go2HW] The motion control-related service is deactivated.");
+    motionStatus = 0;
+  } else {
+    std::string serviceName = queryServiceName(robotForm,motionName);
+    ROS_INFO_STREAM("[UnitreeSDK2Go2HW] The motion control-related service: " << serviceName << " is activated.");
+    motionStatus = 1;
+  }
+  return motionStatus;
+}
+
+std::string UnitreeSDK2Go2HW::queryServiceName(std::string form,std::string name){
+  if(form == "0")
+  {
+    if(name == "normal" ) return "sport_mode"; 
+    if(name == "ai" ) return "ai_sport"; 
+    if(name == "advanced" ) return "advanced_sport"; 
+  }
+  else
+  {
+    if(name == "ai-w" ) return "wheeled_sport(go2W)"; 
+    if(name == "normal-w" ) return "wheeled_sport(b2W)";
+  }
+  return "";
 }
 
 
