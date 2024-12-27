@@ -165,13 +165,13 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
   ROS_INFO_STREAM_THROTTLE(1, "[RLController] actionScaled: " << actionScaled);
   ROS_INFO_STREAM_THROTTLE(1, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
-  // for(int i = 0; i < jointNum_; i++){
-  //   int jntIdxGym = jntMapRobot2Gym_[i];
-  //   double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<float>();
-  //   jointActuatorHandles_[i].setCommand(
-  //     target, 0, jointKp_[i], jointKd_[i], 0
-  //   );
-  // }
+  for(int i = 0; i < jointNum_; i++){
+    int jntIdxGym = jntMapRobot2Gym_[i];
+    double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<float>();
+    jointActuatorHandles_[i].setCommand(
+      target, 0, jointKp_[i], jointKd_[i], 0
+    );
+  }
 
 }
 

@@ -18,26 +18,11 @@ namespace legged{
 
 bool StaticController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& controller_nh) {
   
-  ros::NodeHandle nh;
-  ros::NodeHandle nhConfig("robot_config");
-
-  std::string imuHandleName;
-  int error = 0;
-  error += static_cast<int>(!nhConfig.getParam("joint_names", jointNames_));
-  error += static_cast<int>(!nhConfig.getParam("imu/handle_name", imuHandleName));
-  if(error > 0){
-    std::string error_msg = "[StaticController] Fail to load parameters";
-    ROS_ERROR_STREAM(error_msg);
-    throw std::runtime_error(error_msg);
+  if(!LeggedBaseController::init(robot_hw, controller_nh)){
+    return false;
   }
 
-  /**
-   * @brief Allocate memory for std::vector
-   */
-
   cosCurves_.resize(jointNum_);
-  obs_.jointPos.resize(jointNum_);
-  obs_.jointVel.resize(jointNum_);
 
   targetPos_.resize(3);
   targetPos_.at(0) = {0.0, 1.36, -2.65, 0.0, 1.36, -2.65,
@@ -46,27 +31,14 @@ bool StaticController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHand
                       0.0, 0.67, -1.3, 0.0, 0.67, -1.3};  // stand
   targetPos_.at(2) = {-0.35, 1.36, -2.65, 0.35, 1.36, -2.65,
                       -0.5, 1.36, -2.65, 0.5, 1.36, -2.65}; // down
-  
-  /**
-   * @brief ROS subscribers initialization
-   */
-  targetIdxSub_ = nh.subscribe<std_msgs::Int8>("/target_idx", 1, &StaticController::targetIdxCallback, this);
 
-  /**
-   * @brief Initialize ROS Control interface
-   */
-  auto * jointActuatorInterface = robot_hw->get<JointActuatorInterface>();
-  for(const auto & jntName : jointNames_){
-    JointActuatorHandle jntHandle = jointActuatorInterface->getHandle(jntName);
-    jointActuatorHandles_.push_back(jntHandle);
-  }
-  auto * imuInterface = robot_hw->get<hardware_interface::ImuSensorInterface>();
-  imuSensorHandle_ = imuInterface->getHandle(imuHandleName);
+  ros::NodeHandle nh;
+  targetIdxSub_ = nh.subscribe<std_msgs::Int8>("/target_idx", 1, &StaticController::_targetIdxCallback, this);
 
   return true;
 }
 
-void StaticController::targetIdxCallback(const std_msgs::Int8::ConstPtr & msg){
+void StaticController::_targetIdxCallback(const std_msgs::Int8::ConstPtr & msg){
   targetIdx_ = msg->data;
   auto t0 = currentTime_;
   auto t1 = currentTime_+trajTime_;
@@ -93,8 +65,10 @@ void StaticController::targetIdxCallback(const std_msgs::Int8::ConstPtr & msg){
 }
 
 void StaticController::starting(const ros::Time& time){
+  LeggedBaseController::starting(time);
+
   currentTime_ = time;
-  updateObservation();
+  _updateObservation();
   for(size_t i=0; i<jointNum_; i++){
     cosCurves_[i].reset(
       obs_.jointPos[i],
@@ -106,15 +80,44 @@ void StaticController::starting(const ros::Time& time){
 
 
 void StaticController::stopping(const ros::Time& time){
+  LeggedBaseController::stopping(time);
+}
 
+bool StaticController::_beforeUpdate(const ros::Duration& period){
+  if(_runThisLoop(period.toSec(), true)){
+    // can run the loop in this update, update the observation
+    _updateObservation();
+    return true;
+  } else {
+    // set last command (it is necessary, otherwise the desired cmd would be set to 0 in LeggedHW's read function)
+    // In fact, it is similar to a ZOH
+    for(size_t i=0; i<jointNum_; i++){
+      jointActuatorHandles_[i].setCommand(
+        obs_.lastJointPosDes[i],
+        obs_.lastJointVelDes[i],
+        60.0, 
+        5.0, 
+        0.0
+      );
+    }
+    return false;
+  }
+}
+
+void StaticController::_afterUpdate(const ros::Duration& period){
+  // record last command
+  for(size_t i=0; i<jointNum_; i++){
+    obs_.lastJointPosDes[i] = cosCurves_[i].getPos(currentTime_.toSec());
+    obs_.lastJointVelDes[i] = cosCurves_[i].getVel(currentTime_.toSec());
+  }
 }
 
 void StaticController::update(const ros::Time& time, const ros::Duration& period){
-  ROS_INFO_THROTTLE(1, "[StaticController] RUNNING ...");
-  
-  currentTime_ = time;
-  updateObservation();
+  if(!_beforeUpdate(period)){
+    return;
+  }
 
+  currentTime_ = time;
   for(size_t i=0; i<jointNum_; i++){
     jointActuatorHandles_[i].setCommand(
       cosCurves_[i].getPos(currentTime_.toSec()),
@@ -124,14 +127,10 @@ void StaticController::update(const ros::Time& time, const ros::Duration& period
       0.0
     );
   }
+
+  _afterUpdate(period);
 }
 
-void StaticController::updateObservation(){
-  for(size_t i=0; i<jointNum_; i++){
-    obs_.jointPos[i] = jointActuatorHandles_[i].getPosition();
-    obs_.jointVel[i] = jointActuatorHandles_[i].getVelocity();
-  }
-}
 
 } // namespace legged
 

@@ -3,11 +3,10 @@ controllers:
     type: joint_state_controller/JointStateController
     publish_rate: 300
 
-  stand_controller:
-    type: legged/StandController
-
   rl_controller:
     type: legged/RLController
+    frequency: 100
 
   static_controller:
     type: legged/StaticController
+    frequency: 100
