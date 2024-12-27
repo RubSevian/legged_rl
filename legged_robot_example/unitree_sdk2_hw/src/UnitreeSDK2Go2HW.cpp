@@ -73,6 +73,7 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
    * @brief Initialize Unitree SDK2
    */
   ChannelFactory::Instance()->Init(0, networkInterface);
+  initLowCmd();
   // create publisher to go2
   lowCmdPublisher_.reset(new ChannelPublisher<unitree_go::msg::dds_::LowCmd_>(TOPIC_LOWCMD));
   lowCmdPublisher_->InitChannel();
@@ -152,6 +153,8 @@ void UnitreeSDK2Go2HW::read(const ros::Time& time, const ros::Duration& period) 
 }
 
 void UnitreeSDK2Go2HW::write(const ros::Time& time, const ros::Duration& period){
+  // ROS_INFO_STREAM_THROTTLE(1, "[UnitreeSDK2Go2HW] Joint 0 target pos: " << jointData_[0].posDes_);
+
   // write joint command
   for(size_t i=0; i<jointNum_; i++){
     lowCmd_.motor_cmd()[i].q() = jointData_[i].posDes_;
@@ -227,11 +230,11 @@ void UnitreeSDK2Go2HW::initLowCmd(){
 
   for(size_t i=0; i<20; i++){
     lowCmd_.motor_cmd()[i].mode() = (0x01); // FoC
-    lowCmd_.motor_cmd()[i].q() = posStopF;
-    lowCmd_.motor_cmd()[i].dq() = velStopF;
-    lowCmd_.motor_cmd()[i].kp() = 0.0;
-    lowCmd_.motor_cmd()[i].kd() = 0.0;
-    lowCmd_.motor_cmd()[i].tau() = 0.0;
+    lowCmd_.motor_cmd()[i].q() = (posStopF);
+    lowCmd_.motor_cmd()[i].dq() = (velStopF);
+    lowCmd_.motor_cmd()[i].kp() = (0);
+    lowCmd_.motor_cmd()[i].kd() = (0);
+    lowCmd_.motor_cmd()[i].tau() = (0);
   }
 
 }

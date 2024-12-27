@@ -14,4 +14,11 @@
         </description>
     </class>
 
+    <class name="legged/StaticController" type="legged::StaticController"
+           base_class_type="controller_interface::ControllerBase">
+        <description>
+            The static controller.
+        </description>
+    </class>
+
 </library>

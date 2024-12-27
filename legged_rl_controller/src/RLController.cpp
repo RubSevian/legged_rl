@@ -75,8 +75,6 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   }
 
   // ROS subscribers initialization
-
-  odomGTSub_ = nh.subscribe<nav_msgs::Odometry>("/ground_truth/state", 1, &RLController::odomGTCallback, this);
   cmdSub_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &RLController::cmdCallback, this);
 
   // ROS Control interface initialization
@@ -111,13 +109,13 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
 
   // debug
   updateObservation();
-  ROS_INFO_STREAM("[RLController] baseLinVel: \n" << observation_.baseLinVel );
-  ROS_INFO_STREAM("[RLController] baseAngVel: \n" << observation_.baseAngVel );
-  ROS_INFO_STREAM("[RLController] projGravity: \n" << observation_.projGravity );
-  ROS_INFO_STREAM("[RLController] commands: \n" << observation_.commands );
-  ROS_INFO_STREAM("[RLController] dofPos: \n" << observation_.dofPos );
-  ROS_INFO_STREAM("[RLController] dofVel: \n" << observation_.dofVel );
-  ROS_INFO_STREAM("[RLController] actions: \n" << observation_.actions );
+  // ROS_INFO_STREAM("[RLController] baseLinVel: \n" << observation_.baseLinVel );
+  // ROS_INFO_STREAM("[RLController] baseAngVel: \n" << observation_.baseAngVel );
+  // ROS_INFO_STREAM("[RLController] projGravity: \n" << observation_.projGravity );
+  // ROS_INFO_STREAM("[RLController] commands: \n" << observation_.commands );
+  // ROS_INFO_STREAM("[RLController] dofPos: \n" << observation_.dofPos );
+  // ROS_INFO_STREAM("[RLController] dofVel: \n" << observation_.dofVel );
+  // ROS_INFO_STREAM("[RLController] actions: \n" << observation_.actions );
 
   return true;
 }
@@ -132,6 +130,14 @@ void RLController::stopping(const ros::Time& time){
 
 void RLController::update(const ros::Time& time, const ros::Duration& period){
   updateObservation();
+
+  ROS_INFO_STREAM_THROTTLE(1, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] baseAngVel: \n" << observation_.baseAngVel );
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] projGravity: \n" << observation_.projGravity );
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] commands: \n" << observation_.commands );
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] dofPos: \n" << observation_.dofPos );
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] dofVel: \n" << observation_.dofVel );
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] actions: \n" << observation_.actions );
 
   // debug
   // check nan in obs
@@ -154,13 +160,18 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
   }
 
   auto actionScaled = action_ * rlConfig_.controlScale;
-  for(int i = 0; i < jointNum_; i++){
-    int jntIdxGym = jntMapRobot2Gym_[i];
-    double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<float>();
-    jointActuatorHandles_[i].setCommand(
-      target, 0, jointKp_[i], jointKd_[i], 0
-    );
-  }
+
+  ROS_INFO_STREAM_THROTTLE(1, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+  ROS_INFO_STREAM_THROTTLE(1, "[RLController] actionScaled: " << actionScaled);
+  ROS_INFO_STREAM_THROTTLE(1, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+  // for(int i = 0; i < jointNum_; i++){
+  //   int jntIdxGym = jntMapRobot2Gym_[i];
+  //   double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<float>();
+  //   jointActuatorHandles_[i].setCommand(
+  //     target, 0, jointKp_[i], jointKd_[i], 0
+  //   );
+  // }
 
 }
 
@@ -298,10 +309,6 @@ void RLController::updateObservation(){
 
   // update the observation buffer
   obsBuf_ = torch::cat({obs_, obsBuf_.slice(1, 0, obsBufSize_*oneStepObsSize_-oneStepObsSize_)}, 1);
-}
-
-void RLController::odomGTCallback(const nav_msgs::Odometry::ConstPtr& msg){
-  odomGTBuffer_.writeFromNonRT(*msg);
 }
 
 void RLController::cmdCallback(const geometry_msgs::Twist::ConstPtr& msg){

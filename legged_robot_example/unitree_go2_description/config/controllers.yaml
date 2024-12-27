@@ -8,3 +8,6 @@ controllers:
 
   rl_controller:
     type: legged/RLController
+
+  static_controller:
+    type: legged/StaticController

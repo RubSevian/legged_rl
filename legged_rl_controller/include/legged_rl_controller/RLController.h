@@ -138,10 +138,6 @@ private:
   std::vector<JointActuatorHandle> jointActuatorHandles_;
   hardware_interface::ImuSensorHandle imuSensorHandle_;
 
-  ros::Subscriber odomGTSub_;
-  realtime_tools::RealtimeBuffer<nav_msgs::Odometry> odomGTBuffer_; // used only in sim, ground truth of odom
-  void odomGTCallback(const nav_msgs::Odometry::ConstPtr& msg);
-
   ros::Subscriber cmdSub_;
   // realtime_tools::RealtimeBuffer<geometry_msgs::Twist> cmdBuffer_;
   void cmdCallback(const geometry_msgs::Twist::ConstPtr& msg);

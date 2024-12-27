@@ -28,7 +28,7 @@ try:
     # Switch controllers
     req = SwitchControllerRequest()
     req.start_controllers = ['controllers/rl_controller']
-    req.stop_controllers = ['controllers/stand_controller']
+    req.stop_controllers = ['controllers/static_controller']
     req.strictness = 1
     req.start_asap = True
     req.timeout = 0.0

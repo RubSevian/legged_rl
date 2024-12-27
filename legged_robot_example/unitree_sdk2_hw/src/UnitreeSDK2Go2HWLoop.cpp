@@ -23,6 +23,12 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   ros::NodeHandle nhP("~");
 
+  // std::cout << "WARNING: Make sure the robot is hung up or lying on the ground." << std::endl
+  //         << "Press Enter to continue..." << std::endl;
+  ROS_WARN_STREAM("WARNING: Make sure the robot is hung up or lying on the ground.");
+  ROS_WARN_STREAM("Press Enter to continue...");
+  std::cin.ignore();
+
   // We run the ROS loop in a separate thread as external calls, such
   // as service callbacks loading controllers, can block the (main) control loop
 

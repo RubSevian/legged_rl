@@ -5,7 +5,7 @@ robot_config:
 
   # ros control HW loop
   hw_loop:
-    loop_frequency: 100 # Hz, higher rate not necessary better
+    loop_frequency: 50 # Hz, higher rate not necessary better
     cycle_time_error_threshold: 0.002
     thread_priority: 95
 
@@ -39,5 +39,5 @@ robot_config:
   one_step_obs_size: 45
   obs_buffer_size: 6
 
-  unitree_sdk2:
-    network_interface: lo  # 'lo' for simulation, 'xxx' for real robot
+  # unitree_sdk2:
+  #   network_interface: enp8s0  # 'lo' for simulation, 'xxx' for real robot

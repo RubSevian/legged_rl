@@ -8,16 +8,12 @@
 
     <!-- set global parameter -->
     <param name="use_unitree_sdk2" value="$(arg use_unitree_sdk2)" />
-    <param name="robot_config/unitree_sdk2/network_interface" value="lo"/> 
+    <param name="robot_config/unitree_sdk2/network_interface" value="enp8s0"/> 
 
     <rosparam file="$(find unitree_go2_description)/config/robot.yaml" command="load"/>
 
-    <node name="legged_mujoco" pkg="legged_mujoco" type="legged_mujoco" respawn="false" clear_params="true" output="screen" />
-
-
     <group if="$(arg use_unitree_sdk2)">
         <!-- use unitree_sdk2 HW -->
-        <param name="unitree_sdk2/network_interface" value="lo"/> 
         <node name="unitree_sdk2_go2" pkg="unitree_sdk2_hw" type="unitree_sdk2_go2" respawn="false" clear_params="true" output="screen" />
     </group>
 </launch>

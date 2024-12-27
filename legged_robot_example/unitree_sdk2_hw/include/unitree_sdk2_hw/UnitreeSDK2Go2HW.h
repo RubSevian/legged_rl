@@ -46,6 +46,8 @@ struct UnitreeImuData{
   double linearAccCov_[9];   // NOLINT(modernize-avoid-c-arrays)
 };
 
+constexpr double posStopF = (2.146E+9f);
+constexpr double velStopF = (16000.0f);
 
 class UnitreeSDK2Go2HW : public LeggedHW {
 
@@ -60,9 +62,6 @@ public:
 
   const std::string TOPIC_LOWCMD = "rt/lowcmd";
   const std::string TOPIC_LOWSTATE = "rt/lowstate";
-
-  const double posStopF = (2.146E+9f);
-  const double velStopF = (16000.0f);
 
 private:
 
