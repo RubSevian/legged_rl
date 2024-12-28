@@ -1,5 +1,6 @@
 <launch>
 
+  <arg name="joy" default="false" />
   <arg name="description_name" default="legged_robot_description" />
 
   <!-- load urdf to parameter server -->
@@ -27,7 +28,14 @@
   </node> -->
 
   <!-- joy -->
-  <include file="$(find legged_rl_controller)/launch/joy_teleop.launch"/>
+  <group if="$(arg joy)">
+    <include file="$(find legged_rl_controller)/launch/joy_teleop.launch"/>
+  </group>
+
+  <group unless="$(arg joy)">
+    <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" 
+      output="screen" launch-prefix="gnome-terminal --"/>
+  </group>
 
   <!-- rqt_controller_manager -->
   <node name="rqt_controller_manager" pkg="rqt_controller_manager" type="rqt_controller_manager" output="screen"/>

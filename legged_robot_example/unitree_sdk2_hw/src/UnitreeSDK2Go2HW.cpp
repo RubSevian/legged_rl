@@ -84,20 +84,26 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
   /**
    * @brief Init motion switcher client
    */
-  motionSwitcherClient_ = std::make_shared<unitree::robot::b2::MotionSwitcherClient>();
-  motionSwitcherClient_->SetTimeout(3.0f);
-  motionSwitcherClient_->Init();
-  // shutdown motion-control-related service
-  while(queryMotionStatus()){
-    ROS_INFO("[UnitreeSDK2Go2HW] Shutting down the motion control-related service...");
-    int32_t ret = motionSwitcherClient_->ReleaseMode();
-    if (ret == 0){
-      ROS_INFO("[UnitreeSDK2Go2HW] ReleaseMode succeeded.");
-    } else {
-      ROS_ERROR_STREAM("[UnitreeSDK2Go2HW] ReleaseMode failed. Error code: " << ret);
+
+  if(networkInterface != "lo"){
+    // if not simulation, switch to motion
+    motionSwitcherClient_ = std::make_shared<unitree::robot::b2::MotionSwitcherClient>();
+    motionSwitcherClient_->SetTimeout(3.0f);
+    motionSwitcherClient_->Init();
+    // shutdown motion-control-related service
+    while(queryMotionStatus()){
+      ROS_INFO("[UnitreeSDK2Go2HW] Shutting down the motion control-related service...");
+      int32_t ret = motionSwitcherClient_->ReleaseMode();
+      if (ret == 0){
+        ROS_INFO("[UnitreeSDK2Go2HW] ReleaseMode succeeded.");
+      } else {
+        ROS_ERROR_STREAM("[UnitreeSDK2Go2HW] ReleaseMode failed. Error code: " << ret);
+      }
+      sleep(5);
     }
-    sleep(5);
   }
+
+
 
   return true;
 }
