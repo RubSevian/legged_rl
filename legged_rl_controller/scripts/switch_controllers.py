@@ -29,6 +29,10 @@ try:
     req = SwitchControllerRequest()
     req.start_controllers = ['controllers/rl_controller']
     req.stop_controllers = ['controllers/static_controller']
+    
+    # req.start_controllers = ['controllers/static_controller']
+    # req.stop_controllers = ['controllers/rl_controller']
+    
     req.strictness = 1
     req.start_asap = True
     req.timeout = 0.0

@@ -116,16 +116,21 @@ void LeggedBaseController::_updateObservation(){
 }
 
 bool LeggedBaseController::_runThisLoop(double period, bool debug){
+
+  loopCounter_++;
+  timePassed_ += period;
+
   if(loopCounter_ % loopEveryN_ == 0){
+  // if(timePassed_ >= 1.0 / loopFrequency_){
     if(debug){
       ROS_INFO_STREAM_THROTTLE(1, "[LeggedBaseController] Running the controller loop at frequency: " << 1.0/timePassed_);
+      ROS_INFO_STREAM_THROTTLE(1, "[LeggedBaseController] Time passed: " << timePassed_ << " loopCounter: " << loopCounter_);
     }
-    loopCounter_ = 1;
+    loopCounter_ = 0;
     timePassed_ = 0.0;
     return true;
   }
-  loopCounter_++;
-  timePassed_ += period;
+
   return false;
 }
 
@@ -138,7 +143,11 @@ void LeggedBaseController::update(const ros::Time& time, const ros::Duration& pe
 
 
 void LeggedBaseController::starting(const ros::Time& time) {
-  loopCounter_ = loopEveryN_; // so that the controller can run in the first loop
+  // init loopCounter_ and timePassed_, 
+  // so that the controller can run in the first loop
+  // otherwise, the controller will behave weirdly in the first few updates before the first loop
+  loopCounter_ = loopEveryN_ - 1;
+  timePassed_ = 1.0 / loopFrequency_;
 }
 
 

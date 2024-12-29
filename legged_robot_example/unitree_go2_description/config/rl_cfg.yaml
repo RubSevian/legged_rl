@@ -16,9 +16,9 @@ rl_config:
     action_scale: 0.25
     control_type: P
     damping:
-      joint: 1.0
+      joint: 0.5
     stiffness:
-      joint: 40.0
+      joint: 30.0
   env:
     gym_joint_names:
     - FL_hip_joint

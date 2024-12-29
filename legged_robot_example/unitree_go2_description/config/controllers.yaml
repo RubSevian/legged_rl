@@ -5,8 +5,8 @@ controllers:
 
   rl_controller:
     type: legged/RLController
-    frequency: 150
+    frequency: 50
 
   static_controller:
     type: legged/StaticController
-    frequency: 100
+    frequency: 50

@@ -93,6 +93,8 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   try {
     ROS_INFO_STREAM("[RLController] Loading the jit script: " << rlConfig_.jitScriptPath);
     module_ = std::make_shared<torch::jit::script::Module>(torch::jit::load(rlConfig_.jitScriptPath));
+    // set inference mode
+    module_->eval();
   } catch (const c10::Error& e){
     std::string error_message = "[RLController] Error loading the jit script: " + rlConfig_.jitScriptPath;
     ROS_ERROR_STREAM(error_message);
@@ -104,13 +106,6 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
 
   // debug
   _updateObservation();
-  // ROS_INFO_STREAM("[RLController] baseLinVel: \n" << obsTensorStruct_.baseLinVel );
-  // ROS_INFO_STREAM("[RLController] baseAngVel: \n" << obsTensorStruct_.baseAngVel );
-  // ROS_INFO_STREAM("[RLController] projGravity: \n" << obsTensorStruct_.projGravity );
-  // ROS_INFO_STREAM("[RLController] commands: \n" << obsTensorStruct_.commands );
-  // ROS_INFO_STREAM("[RLController] dofPos: \n" << obsTensorStruct_.dofPos );
-  // ROS_INFO_STREAM("[RLController] dofVel: \n" << obsTensorStruct_.dofVel );
-  // ROS_INFO_STREAM("[RLController] actions: \n" << obsTensorStruct_.actions );
 
   return true;
 }
@@ -162,31 +157,46 @@ void RLController::_afterUpdate(const ros::Duration& period){
     obs_.lastJointVelDes[i] = 0;
   }
 
+  // // debug
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Action: " << actionScaled);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Command: " << command_);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] BaseAngVel: " << obsTensorStruct_.baseAngVel);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] ProjGravity: " << obsTensorStruct_.projGravity);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Commands: " << obsTensorStruct_.commands);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] DofPos: " << obsTensorStruct_.dofPos);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] DofVel: " << obsTensorStruct_.dofVel);
 }
 
 void RLController::update(const ros::Time& time, const ros::Duration& period){
   _beforeUpdate(period);
 
-  // debug
-  // check nan in obs
-  if(torch::any(torch::isnan(obsTensor_)).item<bool>()){
-    ROS_ERROR_STREAM("[RLController] Observation contains nan");
-    std::runtime_error("Observation contains nan");
-    exit(1);
-  }
+  // // debug
+  // // check nan in obs
+  // if(torch::any(torch::isnan(obsTensor_)).item<bool>()){
+  //   ROS_ERROR_STREAM("[RLController] Observation contains nan");
+  //   std::runtime_error("Observation contains nan");
+  //   exit(1);
+  // }
 
-  // set inference mode
-  module_->eval();
+  // // debug time
+  // auto before_net_time = std::chrono::high_resolution_clock::now();
+
   auto out = module_->forward({obsTensorBuf_}).toTensor();
   actionTensor_ = torch::clamp(out, -rlConfig_.clipActions, rlConfig_.clipActions).view({-1});
 
-  // debug check nan
-  if(torch::any(torch::isnan(actionTensor_)).item<bool>()){
-    ROS_ERROR_STREAM("[RLController] Action contains nan");
-    std::runtime_error("Action contains nan");
-    exit(1);
-  }
+  // // debug time
+  // auto after_net_time = std::chrono::high_resolution_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(after_net_time - before_net_time);
+  // if(duration.count()/1e6f > 1.0/loopFrequency_){
+  //   ROS_WARN_STREAM("[RLController] Inference time: " << duration.count() << " us");
+  // }
 
+  // // debug check nan
+  // if(torch::any(torch::isnan(actionTensor_)).item<bool>()){
+  //   ROS_ERROR_STREAM("[RLController] Action contains nan");
+  //   std::runtime_error("Action contains nan");
+  //   exit(1);
+  // }
 
   _afterUpdate(period);
 }
