@@ -14,6 +14,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 
+#include <sensor_msgs/JointState.h>
 
 namespace legged{
 namespace rl{
@@ -104,8 +105,10 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
   // initialize tensors, allocate memory
   _initTensor();
 
-  // debug
   _updateObservation();
+
+  // debug
+  debugActionPub_ = nh.advertise<sensor_msgs::JointState>("/debug_action", 1);
 
   return true;
 }
@@ -118,7 +121,7 @@ void RLController::stopping(const ros::Time& time){
   LeggedBaseController::stopping(time);
 }
 
-bool RLController::_beforeUpdate(const ros::Duration& period){
+bool RLController::_beforeUpdate(const ros::Time& time, const ros::Duration& period){
   if(_runThisLoop(period.toSec(), true)){
     // can run the loop in this update, update the observation
     _updateObservation();
@@ -139,7 +142,7 @@ bool RLController::_beforeUpdate(const ros::Duration& period){
   }
 }
 
-void RLController::_afterUpdate(const ros::Duration& period){
+void RLController::_afterUpdate(const ros::Time& time, const ros::Duration& period){
 
   auto actionScaled = actionTensor_ * rlConfig_.controlScale;
 
@@ -165,10 +168,20 @@ void RLController::_afterUpdate(const ros::Duration& period){
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Commands: " << obsTensorStruct_.commands);
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] DofPos: " << obsTensorStruct_.dofPos);
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] DofVel: " << obsTensorStruct_.dofVel);
+
+  // publish action
+  sensor_msgs::JointState actionMsg;
+  actionMsg.header.stamp = ros::Time::now();
+  actionMsg.name = jointNames_;
+  actionMsg.position.resize(jointNum_);
+  for(int i = 0; i < jointNum_; i++){
+    actionMsg.position[i] = obs_.lastJointPosDes[i];
+  }
+  debugActionPub_.publish(actionMsg);
 }
 
 void RLController::update(const ros::Time& time, const ros::Duration& period){
-  _beforeUpdate(period);
+  _beforeUpdate(time, period);
 
   // // debug
   // // check nan in obs
@@ -198,7 +211,7 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
   //   exit(1);
   // }
 
-  _afterUpdate(period);
+  _afterUpdate(time, period);
 }
 
 void RLController::_initTensor(){

@@ -10,3 +10,7 @@ controllers:
   static_controller:
     type: legged/StaticController
     frequency: 50
+
+  collect_controller:
+    type: legged/CollectController
+    frequency: 50

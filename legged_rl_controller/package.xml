@@ -59,6 +59,8 @@
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>roscpp</exec_depend>
   
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
 
   <depend>hardware_interface</depend>
   <depend>legged_hw</depend>

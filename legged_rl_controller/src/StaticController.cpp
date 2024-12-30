@@ -13,7 +13,6 @@
 #include <pluginlib/class_list_macros.hpp>
 
 
-
 namespace legged{
 
 bool StaticController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& controller_nh) {
@@ -83,7 +82,7 @@ void StaticController::stopping(const ros::Time& time){
   LeggedBaseController::stopping(time);
 }
 
-bool StaticController::_beforeUpdate(const ros::Duration& period){
+bool StaticController::_beforeUpdate(const ros::Time& time, const ros::Duration& period){
   if(_runThisLoop(period.toSec(), true)){
     // can run the loop in this update, update the observation
     _updateObservation();
@@ -104,7 +103,7 @@ bool StaticController::_beforeUpdate(const ros::Duration& period){
   }
 }
 
-void StaticController::_afterUpdate(const ros::Duration& period){
+void StaticController::_afterUpdate(const ros::Time& time, const ros::Duration& period){
   // record last command
   for(size_t i=0; i<jointNum_; i++){
     obs_.lastJointPosDes[i] = cosCurves_[i].getPos(currentTime_.toSec());
@@ -113,7 +112,7 @@ void StaticController::_afterUpdate(const ros::Duration& period){
 }
 
 void StaticController::update(const ros::Time& time, const ros::Duration& period){
-  if(!_beforeUpdate(period)){
+  if(!_beforeUpdate(time, period)){
     return;
   }
 
@@ -128,7 +127,7 @@ void StaticController::update(const ros::Time& time, const ros::Duration& period
     );
   }
 
-  _afterUpdate(period);
+  _afterUpdate(time, period);
 }
 
 

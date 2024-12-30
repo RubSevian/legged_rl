@@ -1,27 +1,31 @@
-/**
- * @file StaticController.h
+/***********************************************************************************
+ * @file CollectController.h
  * @author xiaobaige (zitongbai@outlook.com)
  * @brief 
  * @version 0.1
- * @date 2024-12-26
+ * @date 2024-12-30
  * 
  * @copyright Copyright (c) 2024
  * 
- */
+ ***********************************************************************************/
 
 #pragma once
 
 #include <legged_rl_controller/LeggedBaseController.h>
 #include <legged_rl_controller/CosineCurve.h>
-#include <std_msgs/Int8.h>
+#include <urdf/model.h>
+
+#include <legged_rl_controller/ActuatorState.h>
+
+#include <random>
 
 namespace legged{
 
-class StaticController : public LeggedBaseController{
+class CollectController : public LeggedBaseController {
 
 public:
-
-  StaticController() = default;
+  
+  CollectController() = default;
 
   bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& controller_nh) override;
   void update(const ros::Time& time, const ros::Duration& period) override;
@@ -35,16 +39,31 @@ private:
 
   // some pre-defined target positions
   std::vector<std::vector<double>> targetPos_;
+  int targetIdx_;
+  int targetNum_;
   // cosine curves for each joint
   std::vector<CosineCurve> cosCurves_;
-  // target index subscriber
-  ros::Subscriber targetIdxSub_;
-  void _targetIdxCallback(const std_msgs::Int8::ConstPtr & msg);
-  int targetIdx_ = 0;
 
-  ros::Time currentTime_;
+  std::random_device rd_;
+  std::mt19937 gen_;
+  std::normal_distribution<double> normalDist_;
+  double noiseVariance_ = 0.1;
+  double noiseScale_ = 0.1;
+
   ros::Duration trajTime_ = ros::Duration(5.0);
+
+  double jointKp_ = 20.0;
+  double jointKd_ = 0.5;
+
+  std::vector<double> jointUpLimits_;
+  std::vector<double> jointLowLimits_;
+
+  void _loadUrdf(ros::NodeHandle & nh);
+  std::shared_ptr<urdf::Model> urdfModel_; 
+
+  ros::Publisher actuatorStatePub_;
+
 };
 
-
 } // namespace legged
+

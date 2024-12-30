@@ -46,6 +46,14 @@ public:
         t1_ = t1;
     };
 
+    double getStartTime(){
+        return t0_;
+    };
+
+    double getEndTime(){
+        return t1_;
+    };
+
 private:
     double x0_;
     double x1_;

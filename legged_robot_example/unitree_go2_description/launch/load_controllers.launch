@@ -15,7 +15,8 @@
   <node name="controller_loader" pkg="controller_manager" type="controller_manager"
       output="screen" args="load
       controllers/rl_controller
-      controllers/static_controller"/>
+      controllers/static_controller
+      controllers/collect_controller"/>
 
   <!-- spawn joint_state_controller to publish joint states -->
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"

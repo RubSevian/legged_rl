@@ -133,15 +133,18 @@ private:
    * @return true 
    * @return false 
    */
-  bool _beforeUpdate(const ros::Duration& period) override;
+  bool _beforeUpdate(const ros::Time& time, const ros::Duration& period) override;
 
   /**
    * @brief set joint command and update the last command
    * @param period 
    */
-  void _afterUpdate(const ros::Duration& period) override;
+  void _afterUpdate(const ros::Time& time, const ros::Duration& period) override;
 
-  // FixedSizeQueue<at::Tensor> obsQueue_;
+  // ************************************************************************************************
+  // * debug
+  // ************************************************************************************************
+  ros::Publisher debugActionPub_;
 
 };
 

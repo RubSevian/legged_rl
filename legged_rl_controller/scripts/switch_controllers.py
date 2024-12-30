@@ -27,11 +27,11 @@ try:
 
     # Switch controllers
     req = SwitchControllerRequest()
-    req.start_controllers = ['controllers/rl_controller']
-    req.stop_controllers = ['controllers/static_controller']
+    # req.start_controllers = ['controllers/rl_controller']
+    # req.stop_controllers = ['controllers/static_controller']
     
-    # req.start_controllers = ['controllers/static_controller']
-    # req.stop_controllers = ['controllers/rl_controller']
+    req.start_controllers = ['controllers/static_controller']
+    req.stop_controllers = ['controllers/rl_controller']
     
     req.strictness = 1
     req.start_asap = True

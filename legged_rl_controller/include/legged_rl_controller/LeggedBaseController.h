@@ -115,8 +115,8 @@ protected:
    */
   bool _runThisLoop(double period, bool debug=false);
 
-  virtual bool _beforeUpdate(const ros::Duration& period) = 0;
-  virtual void _afterUpdate(const ros::Duration& period) = 0;
+  virtual bool _beforeUpdate(const ros::Time& time, const ros::Duration& period) = 0;
+  virtual void _afterUpdate(const ros::Time& time, const ros::Duration& period) = 0;
 
 };
 

@@ -14,4 +14,11 @@
         </description>
     </class>
 
+    <class name="legged/CollectController" type="legged::CollectController"
+           base_class_type="controller_interface::ControllerBase">
+        <description>
+            The controller used to collect data.
+        </description>
+    </class>
+
 </library>
