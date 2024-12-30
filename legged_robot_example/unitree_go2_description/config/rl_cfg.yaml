@@ -18,7 +18,7 @@ rl_config:
     damping:
       joint: 0.5
     stiffness:
-      joint: 30.0
+      joint: 20.0
   env:
     gym_joint_names:
     - FL_hip_joint
