@@ -34,9 +34,6 @@ bool LeggedMujocoHW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh
   // // todo: power limit
   // robot_hw_nh.getParam("power_limit", powerLimit_);
 
-
-
-
   ros::NodeHandle nhP("~");
   ros::NodeHandle nhConfig("robot_config");
   int error = 0;

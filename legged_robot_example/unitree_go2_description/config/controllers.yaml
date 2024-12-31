@@ -13,4 +13,4 @@ controllers:
 
   collect_controller:
     type: legged/CollectController
-    frequency: 50
+    frequency: 200

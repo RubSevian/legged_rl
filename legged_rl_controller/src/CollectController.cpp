@@ -12,8 +12,6 @@
 #include <legged_rl_controller/CollectController.h>
 #include <pluginlib/class_list_macros.hpp>
 
-#include <sensor_msgs/JointState.h>
-
 namespace legged{
 
 bool CollectController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& controller_nh) {
@@ -53,7 +51,7 @@ bool CollectController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHan
   ros::NodeHandle nh;
   _loadUrdf(nh);
 
-  actuatorStatePub_ = nh.advertise<legged_rl_controller::ActuatorState>("actuator_state", 1);
+  actuatorStatePub_ = nh.advertise<legged_rl_controller::ActuatorState>("/actuator_data", 1);
 
   return true;
 }
@@ -109,6 +107,12 @@ void CollectController::_afterUpdate(const ros::Time& time, const ros::Duration&
 
   legged_rl_controller::ActuatorState asMsg;
   asMsg.header.stamp = time;
+  asMsg.name.reserve(jointNum_);
+  asMsg.pos.reserve(jointNum_);
+  asMsg.vel.reserve(jointNum_);
+  asMsg.pos_des.reserve(jointNum_);
+  asMsg.vel_des.reserve(jointNum_);
+  asMsg.tau_est.reserve(jointNum_);
 
   for(size_t i=0; i<jointNum_; i++){
     targetJointPos = std::clamp(cosCurves_[i].getPos(time.toSec()), jointLowLimits_[i], jointUpLimits_[i]);
@@ -130,6 +134,7 @@ void CollectController::_afterUpdate(const ros::Time& time, const ros::Duration&
     asMsg.vel_des.push_back(0.0);
     asMsg.pos.push_back(obs_.jointPos[i]);
     asMsg.vel.push_back(obs_.jointVel[i]);
+    asMsg.tau_est.push_back(obs_.jointEff[i]);
   }
 
   asMsg.kp = jointKp_;

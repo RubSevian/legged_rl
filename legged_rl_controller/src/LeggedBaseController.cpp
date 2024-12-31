@@ -88,6 +88,7 @@ void LeggedBaseController::_initImu(hardware_interface::RobotHW* robot_hw){
 void LeggedBaseController::_initObservation(){
   obs_.jointPos.resize(jointNum_);
   obs_.jointVel.resize(jointNum_);
+  obs_.jointEff.resize(jointNum_);
   obs_.lastJointPosDes.resize(jointNum_);
   obs_.lastJointVelDes.resize(jointNum_);
 }
@@ -97,6 +98,7 @@ void LeggedBaseController::_updateObservation(){
   for(size_t i=0; i<jointNum_; i++){
     obs_.jointPos[i] = jointActuatorHandles_[i].getPosition();
     obs_.jointVel[i] = jointActuatorHandles_[i].getVelocity();
+    obs_.jointEff[i] = jointActuatorHandles_[i].getEffort();
   }
 
   // update imu info

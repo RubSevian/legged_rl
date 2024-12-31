@@ -50,6 +50,7 @@ protected:
   struct Observation{
     std::vector<double> jointPos;
     std::vector<double> jointVel;
+    std::vector<double> jointEff;
     double imuOri[4]; // quaternion, x, y, z, w
     double imuAngVel[3];  // angular velocity
     double imuLinAcc[3];  // linear acceleration
