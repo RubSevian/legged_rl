@@ -69,7 +69,7 @@ private:
     torch::Tensor baseLinVel = torch::zeros({3});
     torch::Tensor baseAngVel = torch::zeros({3});
     torch::Tensor projGravity = torch::zeros({3});
-    torch::Tensor commands = torch::zeros({3});
+    torch::Tensor commandsScaled = torch::zeros({3});
     torch::Tensor dofPos = torch::zeros({12});
     torch::Tensor dofVel = torch::zeros({12});
     torch::Tensor actions = torch::zeros({12});

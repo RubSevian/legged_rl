@@ -150,7 +150,7 @@ void RLController::_afterUpdate(const ros::Time& time, const ros::Duration& peri
     // index mapping
     int jntIdxGym = jntMapRobot2Gym_[i];
     // get the target position
-    double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<float>();
+    double target = jointDefaultPos_[i] + actionScaled[jntIdxGym].item<double>();
     // set the command
     jointActuatorHandles_[i].setCommand(
       target, 0, jointKp_[i], jointKd_[i], 0
@@ -165,7 +165,7 @@ void RLController::_afterUpdate(const ros::Time& time, const ros::Duration& peri
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Command: " << command_);
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] BaseAngVel: " << obsTensorStruct_.baseAngVel);
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] ProjGravity: " << obsTensorStruct_.projGravity);
-  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Commands: " << obsTensorStruct_.commands);
+  // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] Commands: " << obsTensorStruct_.commandsScaled);
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] DofPos: " << obsTensorStruct_.dofPos);
   // ROS_INFO_STREAM_THROTTLE(0.1, "[RLController] DofVel: " << obsTensorStruct_.dofVel);
 
@@ -193,6 +193,8 @@ void RLController::update(const ros::Time& time, const ros::Duration& period){
 
   // // debug time
   // auto before_net_time = std::chrono::high_resolution_clock::now();
+  
+  torch::autograd::GradMode::set_enabled(false);
 
   auto out = module_->forward({obsTensorBuf_}).toTensor();
   actionTensor_ = torch::clamp(out, -rlConfig_.clipActions, rlConfig_.clipActions).view({-1});
@@ -218,7 +220,7 @@ void RLController::_initTensor(){
   obsTensorStruct_.baseLinVel = torch::zeros({3});
   obsTensorStruct_.baseAngVel = torch::zeros({3});
   obsTensorStruct_.projGravity = torch::zeros({3});
-  obsTensorStruct_.commands = torch::zeros({3});
+  obsTensorStruct_.commandsScaled = torch::zeros({3});
   obsTensorStruct_.dofPos = torch::zeros({jointNum_});
   obsTensorStruct_.dofVel = torch::zeros({jointNum_});
   obsTensorStruct_.actions = torch::zeros({rlConfig_.numActions});
@@ -303,13 +305,13 @@ void RLController::_initJoints(hardware_interface::RobotHW* robot_hw){
 
 void RLController::_updateObservation(){
   // get the command
-  obsTensorStruct_.commands = torch::tensor({command_[0], command_[1], command_[2]});
+  obsTensorStruct_.commandsScaled = torch::tensor({command_[0], command_[1], command_[2]});
 
   // get joint position and velocity
   for(int i = 0; i < jointNum_; i++){
     int jntIdxGym = jntMapRobot2Gym_[i];
-    obsTensorStruct_.dofPos[jntIdxGym] = (jointActuatorHandles_[i].getPosition() - jointDefaultPos_[i]) * rlConfig_.obsScales.dofPos;
-    obsTensorStruct_.dofVel[jntIdxGym] = jointActuatorHandles_[i].getVelocity() * rlConfig_.obsScales.dofVel;
+    obsTensorStruct_.dofPos[jntIdxGym] = (jointActuatorHandles_[i].getPosition() - jointDefaultPos_[i]);
+    obsTensorStruct_.dofVel[jntIdxGym] = jointActuatorHandles_[i].getVelocity();
   }
 
   // get imu data
@@ -340,15 +342,15 @@ void RLController::_updateObservation(){
   // push back the observations according to the order in observationNames_
   for(const auto & obsName : observationNames_){
     if(obsName == "commands"){  // 3
-      obs_list.push_back(obsTensorStruct_.commands);
+      obs_list.push_back(obsTensorStruct_.commandsScaled);
     } else if(obsName == "base_ang_vel"){ // 3
-      obs_list.push_back(obsTensorStruct_.baseAngVel);
+      obs_list.push_back(obsTensorStruct_.baseAngVel * rlConfig_.obsScales.angVel);
     } else if(obsName == "projected_gravity"){  // 3
       obs_list.push_back(obsTensorStruct_.projGravity);
     } else if(obsName == "dof_pos"){  // 12
-      obs_list.push_back(obsTensorStruct_.dofPos);
+      obs_list.push_back(obsTensorStruct_.dofPos * rlConfig_.obsScales.dofPos);
     } else if(obsName == "dof_vel"){  // 12
-      obs_list.push_back(obsTensorStruct_.dofVel);
+      obs_list.push_back(obsTensorStruct_.dofVel * rlConfig_.obsScales.dofVel);
     } else if(obsName == "actions"){  // 12
       obs_list.push_back(obsTensorStruct_.actions);
     } else {

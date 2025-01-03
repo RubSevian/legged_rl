@@ -163,6 +163,7 @@ void UnitreeSDK2Go2HW::write(const ros::Time& time, const ros::Duration& period)
 
   // write joint command
   for(size_t i=0; i<jointNum_; i++){
+    lowCmd_.motor_cmd()[i].mode() = (0x01); // FoC
     lowCmd_.motor_cmd()[i].q() = jointData_[i].posDes_;
     lowCmd_.motor_cmd()[i].dq() = jointData_[i].velDes_;
     lowCmd_.motor_cmd()[i].kp() = jointData_[i].kp_;
