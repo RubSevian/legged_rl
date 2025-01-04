@@ -1,3 +1,4 @@
+# Please note that this file is for joys like xbox, not unitree's joystick.
 teleop:
   walk:
     type: topic

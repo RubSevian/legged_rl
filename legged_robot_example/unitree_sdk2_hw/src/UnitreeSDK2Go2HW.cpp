@@ -12,6 +12,7 @@
 #include "unitree_sdk2_hw/UnitreeSDK2Go2HW.h"
 
 #include <sensor_msgs/Imu.h>
+#include <unitree_sdk2_hw/Go2Joy.h>
 
 namespace legged{
 
@@ -43,6 +44,7 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
   }
   
   imuPub_ = nhP.advertise<sensor_msgs::Imu>(imuTopicName, 1);
+  joystickPub_ = nhP.advertise<unitree_sdk2_hw::Go2Joy>("joy", 1);
 
   /**
    * @brief Initialize ROS Control
@@ -80,6 +82,9 @@ bool UnitreeSDK2Go2HW::init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_
   // create subscriber to go2
   lowStateSubsriber_.reset(new ChannelSubscriber<unitree_go::msg::dds_::LowState_>(TOPIC_LOWSTATE));
   lowStateSubsriber_->InitChannel(std::bind(&UnitreeSDK2Go2HW::lowStateMessageHandler, this, std::placeholders::_1), 1);
+  // create subscriber to joystick
+  joystickSubscriber_.reset(new ChannelSubscriber<unitree_go::msg::dds_::WirelessController_>(TOPIC_JOYSTICK));
+  joystickSubscriber_->InitChannel(std::bind(&UnitreeSDK2Go2HW::joystickMessageHandler, this, std::placeholders::_1), 1);
 
   /**
    * @brief Init motion switcher client
@@ -248,6 +253,20 @@ void UnitreeSDK2Go2HW::initLowCmd(){
 
 void UnitreeSDK2Go2HW::lowStateMessageHandler(const void * message){
   lowState_ = *(unitree_go::msg::dds_::LowState_*)message;
+}
+
+void UnitreeSDK2Go2HW::joystickMessageHandler(const void * message){
+  unitree_go::msg::dds_::WirelessController_ joystick = *(unitree_go::msg::dds_::WirelessController_*)message;
+  
+  // translate the joystick message to Go2Joy message
+  unitree_sdk2_hw::Go2Joy joyMsg;
+  joyMsg.lx = joystick.lx();
+  joyMsg.ly = joystick.ly();
+  joyMsg.rx = joystick.rx();
+  joyMsg.ry = joystick.ry();
+  joyMsg.keys = joystick.keys();
+
+  joystickPub_.publish(joyMsg);
 }
 
 int UnitreeSDK2Go2HW::queryMotionStatus(){

@@ -102,11 +102,6 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
     throw std::runtime_error(error_message);
   }
 
-  // initialize tensors, allocate memory
-  _initTensor();
-
-  _updateObservation();
-
   // debug
   debugActionPub_ = nh.advertise<sensor_msgs::JointState>("/debug_action", 1);
 
@@ -115,6 +110,11 @@ bool RLController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& 
 
 void RLController::starting(const ros::Time& time){
   LeggedBaseController::starting(time);
+
+  // initialize tensors, allocate memory
+  _initTensor();
+
+  _updateObservation();
 }
 
 void RLController::stopping(const ros::Time& time){

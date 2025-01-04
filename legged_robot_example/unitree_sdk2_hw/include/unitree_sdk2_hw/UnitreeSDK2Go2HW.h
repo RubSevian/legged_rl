@@ -24,6 +24,7 @@
 #include <unitree/common/time/time_tool.hpp>
 #include <unitree/common/thread/thread.hpp>
 #include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
+#include <unitree/idl/go2/WirelessController_.hpp>
 
 using namespace unitree::common;
 using namespace unitree::robot;
@@ -62,6 +63,7 @@ public:
 
   const std::string TOPIC_LOWCMD = "rt/lowcmd";
   const std::string TOPIC_LOWSTATE = "rt/lowstate";
+  const std::string TOPIC_JOYSTICK = "rt/wirelesscontroller";
 
 private:
 
@@ -70,7 +72,8 @@ private:
   bool setupImu();
 
   void initLowCmd();
-  void lowStateMessageHandler(const void* message);
+  void lowStateMessageHandler(const void * message);
+  void joystickMessageHandler(const void * message);
   int queryMotionStatus();
   std::string queryServiceName(std::string form,std::string name);
 
@@ -91,10 +94,12 @@ private:
   ChannelPublisherPtr<unitree_go::msg::dds_::LowCmd_> lowCmdPublisher_;
   // subcriber to Go2
   ChannelSubscriberPtr<unitree_go::msg::dds_::LowState_> lowStateSubsriber_;
+  ChannelSubscriberPtr<unitree_go::msg::dds_::WirelessController_> joystickSubscriber_;
 
-  // publisher for debug
+  // ROS publisher
   ros::Publisher jointStatePub_;
   ros::Publisher imuPub_;
+  ros::Publisher joystickPub_;
 
   std::string imuTopicName_;
   std::string jointStateTopicName_;

@@ -33,7 +33,8 @@ bool StaticController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHand
 
   ros::NodeHandle nh;
   targetIdxSub_ = nh.subscribe<std_msgs::Int8>("/target_idx", 1, &StaticController::_targetIdxCallback, this);
-
+  targetIdx_ = 0;
+  
   return true;
 }
 
@@ -71,7 +72,7 @@ void StaticController::starting(const ros::Time& time){
   for(size_t i=0; i<jointNum_; i++){
     cosCurves_[i].reset(
       obs_.jointPos[i],
-      targetPos_[0][i],
+      targetPos_[targetIdx_][i],
       currentTime_.toSec(),
       (currentTime_+trajTime_).toSec());
   }

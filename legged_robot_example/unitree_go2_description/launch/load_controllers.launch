@@ -1,6 +1,7 @@
 <launch>
 
-  <arg name="joy" default="false" />
+  <arg name="xbox" default="false" />
+  <arg name="keyboard" default="false" />
   <arg name="description_name" default="legged_robot_description" />
 
   <!-- load urdf to parameter server -->
@@ -29,11 +30,11 @@
   </node> -->
 
   <!-- joy -->
-  <group if="$(arg joy)">
+  <group if="$(arg xbox)">
     <include file="$(find legged_rl_controller)/launch/joy_teleop.launch"/>
   </group>
 
-  <group unless="$(arg joy)">
+  <group if="$(arg keyboard)">
     <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" 
       output="screen" launch-prefix="gnome-terminal --"/>
   </group>

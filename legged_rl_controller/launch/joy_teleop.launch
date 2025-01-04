@@ -1,5 +1,7 @@
 <launch>
 
+  <!-- Please note that this file is for joys like xbox, not unitree's joystick. -->
+
   <arg name="cmd_vel" default="/cmd_vel" />
   <arg name="joy_dev" default="/dev/input/js0"/>
   <arg name="teleop_config" default="$(find legged_rl_controller)/config/joy_teleop.yaml" />
