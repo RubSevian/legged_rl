@@ -2,6 +2,8 @@
 
 A [ROS Control](https://wiki.ros.org/ros_control) based reinforcement learning framework for legged robot's traing and deployment. The training part is in the submodule [legged_gym](https://github.com/zitongbai/legged_gym), and the deployment part is the main repo. 
 
+The Sim to Real demo is [here](https://www.bilibili.com/video/BV1gyrxYPEAi/).
+
 # Installation
 
 This repo is tested on **Ubuntu 20.04** with ROS Noetic.
