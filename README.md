@@ -49,7 +49,7 @@ Download libtorch from [pytorch](https://pytorch.org/) (**CPU** version is effic
 Clone this repo:
 ```bash
 # in ros workspace's src folder
-git clone https://github.com/RubSevian/legged_rl.git--recurse-submodules
+git clone https://github.com/RubSevian/legged_rl.git --recurse-submodules
 ```
 
 Build:
