@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
   hardware_interface
   roscpp
+  std_msgs
+  message_generation # for convert msg -> hpp 
   legged_hw
   message_generation
 )
