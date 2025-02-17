@@ -7,3 +7,4 @@
 [submodule "rsl_rl"]
 	path = rsl_rl
 	url = git@github.com:zitongbai/rsl_rl.git
+	branch = v1
